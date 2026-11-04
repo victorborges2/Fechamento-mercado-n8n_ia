@@ -1,0 +1,29 @@
+# Configuração e saídas com dados pessoais
+build/config.local.js
+workflow/*.local.json
+
+# E-mails recebidos: contêm endereço pessoal nos cabeçalhos
+*.eml
+docs/*.eml
+
+# Arquivos de ambiente, caso o projeto um dia use
+.env
+.env.local
+*.key
+*.pem
+
+# Segundo projeto, versionado em repositório próprio
+auditor-crm-vendas/
+
+# Obsidian e editores
+.obsidian/
+*.code-workspace
+.vscode/
+
+# Sistema
+Thumbs.db
+desktop.ini
+.DS_Store
+
+# Node, caso algum dia entre dependência
+node_modules/

@@ -1,0 +1,289 @@
+{
+  "name": "Resumo Diário de Mercado",
+  "nodes": [
+    {
+      "parameters": {
+        "content": "## Resumo Diário de Mercado\n\nAntes de ativar:\n1. Substituir SEU_TOKEN_BRAPI no nó 'Ibovespa (brapi)' — token grátis em brapi.dev\n2. Substituir SUA_CHAVE_ANTHROPIC no nó 'Claude — Resumo do dia'\n3. Configurar credencial Gmail OAuth2 no nó 'Enviar e-mail'\n4. Testar com 'Execute Workflow' antes de ativar",
+        "height": 240,
+        "width": 340
+      },
+      "name": "Instruções",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [-200, -240]
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "30 7 * * 1-5"
+            }
+          ]
+        }
+      },
+      "name": "Seg-Sex 7h30",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [-200, 0]
+    },
+    {
+      "parameters": {
+        "url": "https://brapi.dev/api/quote/^BVSP?token=SEU_TOKEN_BRAPI",
+        "options": {}
+      },
+      "name": "Ibovespa (brapi)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [20, 0],
+      "executeOnce": true,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "url": "https://economia.awesomeapi.com.br/json/last/USD-BRL,EUR-BRL",
+        "options": {}
+      },
+      "name": "Câmbio (AwesomeAPI)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [240, 0],
+      "executeOnce": true,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "url": "https://api.bcb.gov.br/dados/serie/bcdata.sgs.432/dados/ultimos/1?formato=json",
+        "options": {}
+      },
+      "name": "Selic (BCB)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [460, 0],
+      "executeOnce": true,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "url": "https://api.bcb.gov.br/dados/serie/bcdata.sgs.433/dados/ultimos/1?formato=json",
+        "options": {}
+      },
+      "name": "IPCA (BCB)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [680, 0],
+      "executeOnce": true,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "url": "https://query1.finance.yahoo.com/v8/finance/chart/^GSPC?range=5d&interval=1d",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "User-Agent",
+              "value": "Mozilla/5.0"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "name": "S&P 500 (Yahoo)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [900, 0],
+      "executeOnce": true,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "url": "https://query1.finance.yahoo.com/v8/finance/chart/^IXIC?range=5d&interval=1d",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "User-Agent",
+              "value": "Mozilla/5.0"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "name": "Nasdaq (Yahoo)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1120, 0],
+      "executeOnce": true,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "url": "https://query1.finance.yahoo.com/v8/finance/chart/CL=F?range=5d&interval=1d",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "User-Agent",
+              "value": "Mozilla/5.0"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "name": "Petróleo WTI (Yahoo)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1340, 0],
+      "executeOnce": true,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "url": "https://query1.finance.yahoo.com/v8/finance/chart/GC=F?range=5d&interval=1d",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "User-Agent",
+              "value": "Mozilla/5.0"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "name": "Ouro (Yahoo)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1560, 0],
+      "executeOnce": true,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "url": "https://www.infomoney.com.br/feed/",
+        "options": {}
+      },
+      "name": "Notícias BR (InfoMoney)",
+      "type": "n8n-nodes-base.rssFeedRead",
+      "typeVersion": 1.1,
+      "position": [1780, 0],
+      "executeOnce": true,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "url": "https://www.cnbc.com/id/100003114/device/rss/rss.html",
+        "options": {}
+      },
+      "name": "Notícias Global (CNBC)",
+      "type": "n8n-nodes-base.rssFeedRead",
+      "typeVersion": 1.1,
+      "position": [2000, 0],
+      "executeOnce": true,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Consolida todos os dados coletados num prompt para o Claude\nconst pct = (preco, ant) => ant ? (((preco - ant) / ant) * 100).toFixed(2) + '%' : 'n/d';\nconst linhas = [];\n\n// Ibovespa\ntry {\n  const ibov = $('Ibovespa (brapi)').first().json.results[0];\n  linhas.push(`Ibovespa: ${ibov.regularMarketPrice} pts (${(ibov.regularMarketChangePercent ?? 0).toFixed(2)}% no dia)`);\n} catch (e) { linhas.push('Ibovespa: indisponível'); }\n\n// Câmbio\ntry {\n  const fx = $('Câmbio (AwesomeAPI)').first().json;\n  linhas.push(`Dólar: R$ ${Number(fx.USDBRL.bid).toFixed(2)} (${fx.USDBRL.pctChange}% no dia)`);\n  linhas.push(`Euro: R$ ${Number(fx.EURBRL.bid).toFixed(2)} (${fx.EURBRL.pctChange}% no dia)`);\n} catch (e) { linhas.push('Câmbio: indisponível'); }\n\n// Macro Brasil\ntry { linhas.push(`Selic (meta): ${$('Selic (BCB)').first().json[0].valor}% a.a.`); } catch (e) {}\ntry { linhas.push(`IPCA (último mês): ${$('IPCA (BCB)').first().json[0].valor}%`); } catch (e) {}\n\n// Yahoo Finance\nconst yahoo = (nome, node) => {\n  try {\n    const m = $(node).first().json.chart.result[0].meta;\n    const ant = m.chartPreviousClose ?? m.previousClose;\n    linhas.push(`${nome}: ${m.regularMarketPrice} (${pct(m.regularMarketPrice, ant)})`);\n  } catch (e) { linhas.push(`${nome}: indisponível`); }\n};\nyahoo('S&P 500', 'S&P 500 (Yahoo)');\nyahoo('Nasdaq', 'Nasdaq (Yahoo)');\nyahoo('Petróleo WTI (US$)', 'Petróleo WTI (Yahoo)');\nyahoo('Ouro (US$/oz)', 'Ouro (Yahoo)');\n\n// Notícias\nlet noticiasBR = '', noticiasGlobal = '';\ntry { noticiasBR = $('Notícias BR (InfoMoney)').all().slice(0, 8).map(i => `- ${i.json.title}`).join('\\n'); } catch (e) {}\ntry { noticiasGlobal = $('Notícias Global (CNBC)').all().slice(0, 8).map(i => `- ${i.json.title}`).join('\\n'); } catch (e) {}\n\nconst hoje = new Date().toLocaleDateString('pt-BR', { timeZone: 'America/Sao_Paulo', weekday: 'long', day: '2-digit', month: 'long', year: 'numeric' });\n\nconst prompt = `Você é um analista de mercado sênior escrevendo o resumo matinal de ${hoje} para um investidor brasileiro.\n\nDADOS DE MERCADO:\n${linhas.join('\\n')}\n\nMANCHETES BRASIL (InfoMoney):\n${noticiasBR || 'indisponível'}\n\nMANCHETES GLOBAIS (CNBC):\n${noticiasGlobal || 'indisponível'}\n\nEscreva um e-mail em HTML (use apenas tags HTML simples: h2, h3, p, ul, li, strong — sem markdown, sem <html>/<body>) com esta estrutura:\n1. \"Visão geral\" — 2-3 frases conectando o cenário do dia\n2. \"Brasil\" — Ibovespa, dólar, Selic/IPCA e o que explica os movimentos\n3. \"EUA e mundo\" — índices, commodities e contexto\n4. \"3 notícias para acompanhar\" — as 3 manchetes mais relevantes com 1 linha de contexto cada\n\nTom direto e profissional, em português. Se algum dado estiver indisponível, apenas omita. Responda SOMENTE com o HTML, nada antes ou depois.`;\n\nreturn [{ json: { prompt } }];"
+      },
+      "name": "Consolidar dados",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [2220, 0]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.anthropic.com/v1/messages",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "x-api-key",
+              "value": "SUA_CHAVE_ANTHROPIC"
+            },
+            {
+              "name": "anthropic-version",
+              "value": "2023-06-01"
+            },
+            {
+              "name": "content-type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ model: 'claude-sonnet-5', max_tokens: 2000, messages: [{ role: 'user', content: $json.prompt }] }) }}",
+        "options": {}
+      },
+      "name": "Claude — Resumo do dia",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [2440, 0],
+      "executeOnce": true
+    },
+    {
+      "parameters": {
+        "sendTo": "seu-email@exemplo.com",
+        "subject": "={{ 'Resumo do Mercado — ' + $now.setZone('America/Sao_Paulo').toFormat('dd/LL/yyyy') }}",
+        "emailType": "html",
+        "message": "={{ $json.content[0].text }}",
+        "options": {}
+      },
+      "name": "Enviar e-mail",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [2660, 0],
+      "executeOnce": true
+    }
+  ],
+  "connections": {
+    "Seg-Sex 7h30": {
+      "main": [[{ "node": "Ibovespa (brapi)", "type": "main", "index": 0 }]]
+    },
+    "Ibovespa (brapi)": {
+      "main": [[{ "node": "Câmbio (AwesomeAPI)", "type": "main", "index": 0 }]]
+    },
+    "Câmbio (AwesomeAPI)": {
+      "main": [[{ "node": "Selic (BCB)", "type": "main", "index": 0 }]]
+    },
+    "Selic (BCB)": {
+      "main": [[{ "node": "IPCA (BCB)", "type": "main", "index": 0 }]]
+    },
+    "IPCA (BCB)": {
+      "main": [[{ "node": "S&P 500 (Yahoo)", "type": "main", "index": 0 }]]
+    },
+    "S&P 500 (Yahoo)": {
+      "main": [[{ "node": "Nasdaq (Yahoo)", "type": "main", "index": 0 }]]
+    },
+    "Nasdaq (Yahoo)": {
+      "main": [[{ "node": "Petróleo WTI (Yahoo)", "type": "main", "index": 0 }]]
+    },
+    "Petróleo WTI (Yahoo)": {
+      "main": [[{ "node": "Ouro (Yahoo)", "type": "main", "index": 0 }]]
+    },
+    "Ouro (Yahoo)": {
+      "main": [[{ "node": "Notícias BR (InfoMoney)", "type": "main", "index": 0 }]]
+    },
+    "Notícias BR (InfoMoney)": {
+      "main": [[{ "node": "Notícias Global (CNBC)", "type": "main", "index": 0 }]]
+    },
+    "Notícias Global (CNBC)": {
+      "main": [[{ "node": "Consolidar dados", "type": "main", "index": 0 }]]
+    },
+    "Consolidar dados": {
+      "main": [[{ "node": "Claude — Resumo do dia", "type": "main", "index": 0 }]]
+    },
+    "Claude — Resumo do dia": {
+      "main": [[{ "node": "Enviar e-mail", "type": "main", "index": 0 }]]
+    }
+  },
+  "settings": {
+    "timezone": "America/Sao_Paulo",
+    "executionOrder": "v1"
+  },
+  "pinData": {}
+}

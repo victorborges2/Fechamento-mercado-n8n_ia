@@ -1,0 +1,836 @@
+{
+  "name": "Briefing Diário de Mercado",
+  "nodes": [
+    {
+      "parameters": {
+        "content": "## Briefing Diário de Mercado\n\nRedação por: Gemini (Google AI Studio) (gemini-3.5-flash)\n\nAntes de ativar:\n1. Token brapi nos nós \"Ibovespa (brapi)\" e \"Ranking B3\" — grátis em brapi.dev\n2. Chave do provedor no header x-goog-api-key do nó \"Análise do dia (LLM)\" — obtenha em https://aistudio.google.com/apikey\n3. Selecionar a credencial SMTP no nó \"Enviar e-mail\" (senha de app)\n4. Testar com Execute Workflow\n\nPara trocar de provedor: edite build/config.local.js e rode node make.js",
+        "height": 300,
+        "width": 380
+      },
+      "name": "Instruções",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -200,
+        -260
+      ]
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "30 7 * * 1-5"
+            }
+          ]
+        }
+      },
+      "name": "Seg-Sex 7h30",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -200,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "url": "https://brapi.dev/api/quote/%5EBVSP?token=SEU_TOKEN_BRAPI",
+        "options": {}
+      },
+      "name": "Ibovespa (brapi)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        20,
+        0
+      ],
+      "executeOnce": true,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "url": "https://query1.finance.yahoo.com/v8/finance/chart/%5EBVSP?range=5d&interval=1d",
+        "options": {},
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "User-Agent",
+              "value": "Mozilla/5.0"
+            }
+          ]
+        }
+      },
+      "name": "Ibovespa 5d (Yahoo)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        20,
+        180
+      ],
+      "executeOnce": true,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "url": "https://economia.awesomeapi.com.br/json/last/USD-BRL,EUR-BRL",
+        "options": {}
+      },
+      "name": "Câmbio (AwesomeAPI)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        240,
+        0
+      ],
+      "executeOnce": true,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "url": "https://economia.awesomeapi.com.br/json/daily/USD-BRL/6",
+        "options": {}
+      },
+      "name": "Histórico Dólar (AwesomeAPI)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        460,
+        0
+      ],
+      "executeOnce": true,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "url": "https://economia.awesomeapi.com.br/json/daily/EUR-BRL/6",
+        "options": {}
+      },
+      "name": "Histórico Euro (AwesomeAPI)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        680,
+        0
+      ],
+      "executeOnce": true,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "url": "https://api.bcb.gov.br/dados/serie/bcdata.sgs.432/dados/ultimos/1?formato=json",
+        "options": {}
+      },
+      "name": "Selic (BCB)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        900,
+        0
+      ],
+      "executeOnce": true,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "url": "https://api.bcb.gov.br/dados/serie/bcdata.sgs.433/dados/ultimos/1?formato=json",
+        "options": {}
+      },
+      "name": "IPCA (BCB)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1120,
+        0
+      ],
+      "executeOnce": true,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "url": "https://query1.finance.yahoo.com/v8/finance/chart/%5EGSPC?range=5d&interval=1d",
+        "options": {},
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "User-Agent",
+              "value": "Mozilla/5.0"
+            }
+          ]
+        }
+      },
+      "name": "S&P 500 (Yahoo)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1340,
+        0
+      ],
+      "executeOnce": true,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "url": "https://stooq.com/q/d/l/?s=%5Espx&i=d",
+        "options": {}
+      },
+      "name": "S&P 500 (Stooq)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1340,
+        180
+      ],
+      "executeOnce": true,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "url": "https://query1.finance.yahoo.com/v8/finance/chart/%5EIXIC?range=5d&interval=1d",
+        "options": {},
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "User-Agent",
+              "value": "Mozilla/5.0"
+            }
+          ]
+        }
+      },
+      "name": "Nasdaq (Yahoo)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1560,
+        0
+      ],
+      "executeOnce": true,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "url": "https://stooq.com/q/d/l/?s=%5Endq&i=d",
+        "options": {}
+      },
+      "name": "Nasdaq (Stooq)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1560,
+        180
+      ],
+      "executeOnce": true,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "url": "https://query1.finance.yahoo.com/v8/finance/chart/CL=F?range=5d&interval=1d",
+        "options": {},
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "User-Agent",
+              "value": "Mozilla/5.0"
+            }
+          ]
+        }
+      },
+      "name": "Petróleo WTI (Yahoo)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1780,
+        0
+      ],
+      "executeOnce": true,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "url": "https://stooq.com/q/d/l/?s=cl.f&i=d",
+        "options": {}
+      },
+      "name": "Petróleo WTI (Stooq)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1780,
+        180
+      ],
+      "executeOnce": true,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "url": "https://query1.finance.yahoo.com/v8/finance/chart/GC=F?range=5d&interval=1d",
+        "options": {},
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "User-Agent",
+              "value": "Mozilla/5.0"
+            }
+          ]
+        }
+      },
+      "name": "Ouro (Yahoo)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2000,
+        0
+      ],
+      "executeOnce": true,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "url": "https://stooq.com/q/d/l/?s=gc.f&i=d",
+        "options": {}
+      },
+      "name": "Ouro (Stooq)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2000,
+        180
+      ],
+      "executeOnce": true,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "url": "https://brapi.dev/api/quote/list?sortBy=change&sortOrder=desc&limit=80&token=SEU_TOKEN_BRAPI",
+        "options": {}
+      },
+      "name": "Ranking B3 altas (brapi)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2120,
+        0
+      ],
+      "executeOnce": true,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "url": "https://brapi.dev/api/quote/list?sortBy=change&sortOrder=asc&limit=80&token=SEU_TOKEN_BRAPI",
+        "options": {}
+      },
+      "name": "Ranking B3 baixas (brapi)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2120,
+        180
+      ],
+      "executeOnce": true,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "url": "https://www.infomoney.com.br/feed/",
+        "options": {}
+      },
+      "name": "Notícias BR (InfoMoney)",
+      "type": "n8n-nodes-base.rssFeedRead",
+      "typeVersion": 1.1,
+      "position": [
+        2220,
+        0
+      ],
+      "executeOnce": true,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "url": "https://www.moneytimes.com.br/feed/",
+        "options": {}
+      },
+      "name": "Notícias BR (Money Times)",
+      "type": "n8n-nodes-base.rssFeedRead",
+      "typeVersion": 1.1,
+      "position": [
+        2320,
+        0
+      ],
+      "executeOnce": true,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "url": "https://exame.com/feed/",
+        "options": {}
+      },
+      "name": "Notícias BR (Exame)",
+      "type": "n8n-nodes-base.rssFeedRead",
+      "typeVersion": 1.1,
+      "position": [
+        2420,
+        0
+      ],
+      "executeOnce": true,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "url": "https://g1.globo.com/rss/g1/economia/",
+        "options": {}
+      },
+      "name": "Notícias BR (G1 Economia)",
+      "type": "n8n-nodes-base.rssFeedRead",
+      "typeVersion": 1.1,
+      "position": [
+        2520,
+        0
+      ],
+      "executeOnce": true,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "url": "https://www.cnbc.com/id/100003114/device/rss/rss.html",
+        "options": {}
+      },
+      "name": "Notícias Global (CNBC)",
+      "type": "n8n-nodes-base.rssFeedRead",
+      "typeVersion": 1.1,
+      "position": [
+        2620,
+        0
+      ],
+      "executeOnce": true,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Coleta, normaliza e monta o prompt. Node \"Consolidar dados\" do n8n.\n// Toda fonte que falha entra em `falhas` e é impressa no rodapé do e-mail.\n// O modelo escolhe notícia por ÍNDICE; link, imagem e fonte vêm daqui, nunca dele.\n\nconst fmtBR = (n, dec) => Number(n).toLocaleString('pt-BR', { minimumFractionDigits: dec, maximumFractionDigits: dec });\nconst indicadores = [];\nconst macro = [];\nconst movimentos = [];\nconst paraTexto = [];\nconst falhas = [];\n// registra o motivo junto com o nome: sem isso, diagnosticar uma queda em massa vira adivinhação\nconst falhou = (nome, e) => {\n  const msg = (e && (e.message || String(e))) || 'sem detalhe';\n  falhas.push(nome + ' (' + String(msg).slice(0, 90) + ')');\n};\n\n// n8n entrega array JSON como itens separados; isto tolera os dois formatos\nconst itens = (node) => {\n  const arr = $(node).all().map(i => i.json);\n  if (arr.length === 1 && Array.isArray(arr[0])) return arr[0];\n  return arr;\n};\n\n// ---------- Ibovespa (brapi) ----------\ntry {\n  const ibov = $('Ibovespa (brapi)').first().json.results[0];\n  if (!ibov || ibov.regularMarketPrice == null) throw new Error('sem cotação');\n  // O plano gratuito da brapi devolve a cotação, mas não a série histórica.\n  // Os fechamentos de 5 pregões vêm do Yahoo, igual aos demais ativos.\n  let closes = [];\n  try { closes = (ibov.historicalDataPrice || []).map(h => h.close).filter(c => c != null).slice(-6); } catch (e) {}\n  if (!closes.length) {\n    try {\n      const r = $('Ibovespa 5d (Yahoo)').first().json.chart.result[0];\n      closes = r.indicators.quote[0].close.filter(c => c != null).slice(-6);\n    } catch (e) {}\n  }\n  if (!closes.length) falhou('série 5d do Ibovespa', new Error('brapi sem histórico e Yahoo indisponível'));\n  indicadores.push({\n    nome: 'Ibovespa',\n    valor: fmtBR(ibov.regularMarketPrice, 0) + ' pts',\n    delta: ibov.regularMarketChangePercent ?? null,\n    closes\n  });\n  paraTexto.push('Ibovespa: ' + fmtBR(ibov.regularMarketPrice, 0) + ' pts (' + (ibov.regularMarketChangePercent ?? 0).toFixed(2) + '% no dia)');\n} catch (e) { falhou('Ibovespa (brapi)', e); }\n\n// ---------- Câmbio (AwesomeAPI) ----------\nconst fxHist = (node, rotulo) => {\n  try {\n    const lista = itens(node).map(x => Number(x.bid)).filter(v => isFinite(v));\n    if (lista.length < 3) throw new Error('série curta');\n    return lista.reverse();\n  } catch (e) { falhou('série 5d do ' + rotulo, e); return []; }\n};\ntry {\n  const fx = $('Câmbio (AwesomeAPI)').first().json;\n  indicadores.push({ nome: 'Dólar', valor: 'R$ ' + fmtBR(fx.USDBRL.bid, 2), delta: Number(fx.USDBRL.pctChange), closes: fxHist('Histórico Dólar (AwesomeAPI)', 'dólar') });\n  indicadores.push({ nome: 'Euro', valor: 'R$ ' + fmtBR(fx.EURBRL.bid, 2), delta: Number(fx.EURBRL.pctChange), closes: fxHist('Histórico Euro (AwesomeAPI)', 'euro') });\n  paraTexto.push('Dólar: R$ ' + fmtBR(fx.USDBRL.bid, 2) + ' (' + fx.USDBRL.pctChange + '% no dia)');\n  paraTexto.push('Euro: R$ ' + fmtBR(fx.EURBRL.bid, 2) + ' (' + fx.EURBRL.pctChange + '% no dia)');\n} catch (e) { falhou('Câmbio (AwesomeAPI)', e); }\n\n// ---------- Índices e commodities: Yahoo, com Stooq de reserva ----------\nconst doYahoo = (node) => {\n  const r = $(node).first().json.chart.result[0];\n  const m = r.meta;\n  if (m.regularMarketPrice == null) throw new Error('sem preço');\n  const ant = m.chartPreviousClose ?? m.previousClose;\n  let closes = [];\n  try { closes = r.indicators.quote[0].close.filter(c => c != null).slice(-6); } catch (e) {}\n  return { preco: m.regularMarketPrice, delta: ant ? ((m.regularMarketPrice - ant) / ant) * 100 : null, closes };\n};\nconst doStooq = (node) => {\n  const first = $(node).first().json;\n  const txt = typeof first === 'string' ? first : (first.data || first.body || JSON.stringify(first));\n  const closes = String(txt).trim().split('\\n').slice(1).map(l => Number(l.split(',')[4])).filter(v => isFinite(v));\n  if (closes.length < 2) throw new Error('csv vazio');\n  const ult = closes[closes.length - 1], ant = closes[closes.length - 2];\n  return { preco: ult, delta: ((ult - ant) / ant) * 100, closes: closes.slice(-6) };\n};\nconst ativo = (nome, nodeYahoo, nodeStooq, prefixo, dec) => {\n  let r = null, ultimoErro = null;\n  try { r = doYahoo(nodeYahoo); } catch (e) { ultimoErro = e; }\n  if (!r) { try { r = doStooq(nodeStooq); falhas.push(nome + ': Yahoo fora, usei Stooq'); } catch (e) { ultimoErro = e; } }\n  if (!r) { falhou(nome, ultimoErro || new Error('Yahoo e Stooq indisponíveis')); return; }\n  indicadores.push({ nome, valor: prefixo + fmtBR(r.preco, dec), delta: r.delta, closes: r.closes });\n  paraTexto.push(nome + ': ' + prefixo + fmtBR(r.preco, dec) + ' (' + (r.delta ?? 0).toFixed(2) + '% no dia)');\n};\nativo('S&P 500', 'S&P 500 (Yahoo)', 'S&P 500 (Stooq)', '', 2);\nativo('Nasdaq', 'Nasdaq (Yahoo)', 'Nasdaq (Stooq)', '', 2);\nativo('Petróleo WTI', 'Petróleo WTI (Yahoo)', 'Petróleo WTI (Stooq)', 'US$ ', 2);\nativo('Ouro', 'Ouro (Yahoo)', 'Ouro (Stooq)', 'US$ ', 2);\n\n// ---------- Movimentos do dia: maiores altas e baixas da B3 ----------\n// Dois nós distintos: o endpoint ordena numa direção só. Pedir \"as últimas da lista de altas\"\n// devolvia papéis que SUBIRAM pouco, apresentados como se fossem quedas.\n//\n// Filtro de relevância: fora fracionários (sufixo F), BDRs (34/35/39) e papéis sem liquidez.\n// Sem isso o bloco vira vitrine de ação ilíquida com +260% que não diz nada sobre o mercado.\nconst VOLUME_MINIMO = 1000000; // R$ 1 mi no dia\nconst relevante = (a) => {\n  if (!a || a.change == null || !isFinite(a.change) || a.close == null) return false;\n  const t = String(a.stock || '');\n  if (!/^[A-Z]{4}(3|4|5|6|11)$/.test(t)) return false;        // só ON, PN e units\n  if (/(34|35|39)$/.test(t)) return false;                     // BDR\n  const vol = Number(a.volume || 0) * Number(a.close || 0);\n  return vol >= VOLUME_MINIMO;\n};\nconst pegarRanking = (node, rotulo, quantos) => {\n  const lista = (($(node).first().json || {}).stocks) || [];\n  const bons = lista.filter(relevante);\n  if (!bons.length) throw new Error(rotulo + ': nenhum papel passou no filtro de liquidez');\n  return bons.slice(0, quantos);\n};\ntry {\n  const altas = pegarRanking('Ranking B3 altas (brapi)', 'altas', 2);\n  altas.forEach(a => movimentos.push({ ticker: a.stock, valor: 'R$ ' + fmtBR(a.close, 2), delta: Number(a.change) }));\n  paraTexto.push('Maiores altas da B3: ' + altas.map(a => a.stock + ' ' + a.change.toFixed(2) + '%').join(', '));\n} catch (e) { falhou('Maiores altas (brapi)', e); }\ntry {\n  const baixas = pegarRanking('Ranking B3 baixas (brapi)', 'baixas', 2);\n  baixas.forEach(a => movimentos.push({ ticker: a.stock, valor: 'R$ ' + fmtBR(a.close, 2), delta: Number(a.change) }));\n  paraTexto.push('Maiores quedas da B3: ' + baixas.map(a => a.stock + ' ' + a.change.toFixed(2) + '%').join(', '));\n} catch (e) { falhou('Maiores quedas (brapi)', e); }\n\n// ---------- Macro (séries SGS do Banco Central) ----------\nconst serieBCB = (node) => {\n  const lista = itens(node);\n  const ultimo = lista[lista.length - 1];\n  if (!ultimo || ultimo.valor == null) throw new Error('sem série');\n  return ultimo;\n};\ntry {\n  const s = serieBCB('Selic (BCB)');\n  macro.push({ nome: 'Selic (meta)', valor: String(s.valor).replace('.', ',') + '% a.a.', nota: 'vigente' });\n  paraTexto.push('Selic meta: ' + s.valor + '% a.a.');\n} catch (e) { falhou('Selic (BCB)', e); }\ntry {\n  const i = serieBCB('IPCA (BCB)');\n  macro.push({ nome: 'IPCA', valor: String(i.valor).replace('.', ',') + '%', nota: 'último mês fechado' });\n  paraTexto.push('IPCA do último mês fechado: ' + i.valor + '%');\n} catch (e) { falhou('IPCA (BCB)', e); }\n\n// ---------- Notícias: vários portais, com link e imagem reais ----------\nconst limpar = (s) => String(s || '').replace(/<[^>]*>/g, ' ').replace(/&[a-z#0-9]+;/gi, ' ').replace(/\\s+/g, ' ').trim();\nconst url = (s) => String(s || '').replace(/&amp;/g, '&').trim();\nconst acharImagem = (it) => {\n  const cand = [\n    it.enclosure && it.enclosure.url,\n    it.enclosure && it.enclosure.link,\n    it['media:content'] && (it['media:content'].url || (it['media:content'].$ && it['media:content'].$.url)),\n    it['media:thumbnail'] && (it['media:thumbnail'].url || (it['media:thumbnail'].$ && it['media:thumbnail'].$.url)),\n    it.image && (it.image.url || it.image),\n    it.thumbnail\n  ];\n  for (const c of cand) if (typeof c === 'string' && /^https?:\\/\\//.test(c)) return url(c);\n  const html = String(it['content:encoded'] || it.content || it.description || it.summary || '');\n  const m = html.match(/<img[^>]+src=[\"']?(https?:\\/\\/[^\"'\\s>]+)/i);\n  return m ? url(m[1]) : '';\n};\nconst noticias = [];\nconst lerFeed = (node, fonte) => {\n  try {\n    const arr = $(node).all().map(i => i.json);\n    if (!arr.length) throw new Error('feed vazio');\n    arr.slice(0, 8).forEach(it => {\n      const titulo = limpar(it.title);\n      if (!titulo) return;\n      noticias.push({\n        fonte,\n        titulo,\n        link: url(typeof it.link === 'string' ? it.link : ((it.link && it.link.href) || '')),\n        imagem: acharImagem(it),\n        resumo: limpar(it.contentSnippet || it.description || it.summary).slice(0, 220)\n      });\n    });\n  } catch (e) { falhou(fonte, e); }\n};\nlerFeed('Notícias BR (InfoMoney)', 'InfoMoney');\nlerFeed('Notícias BR (Money Times)', 'Money Times');\nlerFeed('Notícias BR (Exame)', 'Exame');\nlerFeed('Notícias BR (G1 Economia)', 'G1 Economia');\nlerFeed('Notícias Global (CNBC)', 'CNBC');\n\n// Intercala os portais (round-robin). Sem isso o catálogo fica em blocos por fonte\n// e o modelo tende a escolher as 5 primeiras, todas do mesmo lugar.\nconst porFonte = {};\nnoticias.forEach(n => { (porFonte[n.fonte] = porFonte[n.fonte] || []).push(n); });\nconst fontes = Object.keys(porFonte);\nconst intercaladas = [];\nfor (let r = 0; intercaladas.length < noticias.length; r++) {\n  let achou = false;\n  for (const f of fontes) {\n    if (porFonte[f][r]) { intercaladas.push(porFonte[f][r]); achou = true; }\n  }\n  if (!achou) break;\n}\nnoticias.length = 0;\nnoticias.push(...intercaladas);\n\nconst catalogo = noticias.map((n, i) => '[' + i + '] (' + n.fonte + ') ' + n.titulo + (n.resumo ? ' — ' + n.resumo : '')).join('\\n');\nconst fontesDisponiveis = fontes.length;\n\n// ---------- Contexto temporal ----------\nconst agora = new Date();\nconst dataFmt = agora.toLocaleDateString('pt-BR', { timeZone: 'America/Sao_Paulo', weekday: 'long', day: '2-digit', month: 'long', year: 'numeric' });\nconst horaFmt = agora.toLocaleTimeString('pt-BR', { timeZone: 'America/Sao_Paulo', hour: '2-digit', minute: '2-digit' });\nconst hora = Number(agora.toLocaleString('en-US', { timeZone: 'America/Sao_Paulo', hour: '2-digit', hour12: false }));\n\nlet recorte, instrucaoTempo;\nif (hora < 10) {\n  recorte = 'antes da abertura';\n  instrucaoTempo = 'O briefing sai antes da abertura do pregão brasileiro. Os números de ações locais referem-se ao fechamento anterior: fale no passado sobre ontem e no futuro sobre o que o dia reserva.';\n} else if (hora < 18) {\n  recorte = 'pregão em andamento';\n  instrucaoTempo = 'O pregão está aberto. Deixe claro que os números brasileiros são parciais e use o presente: opera, avança, recua.';\n} else {\n  recorte = 'após o fechamento';\n  instrucaoTempo = 'O pregão já fechou. Use o passado: fechou, encerrou o dia.';\n}\n\nconst prompt = 'Você assina o briefing de mercado de ' + dataFmt + ', publicado ' + recorte + ' (' + horaFmt + ' de Brasília), para um investidor brasileiro.\\n\\n' +\n  'ESTILO: newsletter de research, escrita fluida, frases encadeadas por causa e efeito. Sempre que citar projeção ou opinião de terceiro, atribua a quem disse. Quando um número for grande demais para intuir, dê uma referência de comparação. Proibido: emoji, exclamação, clichê de mercado, e qualquer número que não esteja nos dados abaixo. ' + instrucaoTempo + '\\n\\n' +\n  'DADOS DE MERCADO (esta é a lista COMPLETA do que existe hoje):\\n' + paraTexto.join('\\n') + '\\n\\n' +\n  'REGRA ABSOLUTA: só escreva sobre indicador que aparece na lista acima. Se não há dado de índices americanos, commodities ou macro, devolva STRING VAZIA (\"\") no campo correspondente. Uma seção omitida é correta; uma seção escrita sem dado é erro grave. Não use conhecimento próprio sobre o mercado para preencher lacuna, não descreva clima de mercado genérico (\"postura defensiva\", \"cautela dos investidores\") sem número que sustente.\\n\\n' +\n  'NOTÍCIAS DISPONÍVEIS (escolha pelo índice entre colchetes):\\n' + (catalogo || 'indisponível') + '\\n\\n' +\n  'Responda SOMENTE com JSON válido, sem markdown, neste formato:\\n' +\n  '{\\n' +\n  '  \"manchete\": \"título do dia, máx 95 caracteres, com o fato principal e um número quando couber\",\\n' +\n  '  \"lead\": \"2 a 3 frases que resumem a edição inteira; quem ler só isso entende o dia\",\\n' +\n  '  \"visao_geral\": \"2 a 3 frases ligando o cenário externo ao doméstico\",\\n' +\n  '  \"brasil\": \"3 a 5 frases sobre Ibovespa, câmbio, maiores altas e quedas e o que explica os movimentos\",\\n' +\n  '  \"eua_mundo\": \"3 a 5 frases sobre índices americanos, commodities e o pano de fundo macro\",\\n' +\n  '  \"implicacao\": \"2 a 3 frases de leitura estratégica: que tese ganha ou perde força. Comece pela avaliação, não por resumo\",\\n' +\n  '  \"vetor\": \"uma frase: o indicador, evento ou preço a acompanhar para confirmar ou derrubar a leitura acima\",\\n' +\n  '  \"entenda\": { \"titulo\": \"pergunta curta sobre o mecanismo menos óbvio do dia\", \"texto\": \"2 a 3 frases explicando esse mecanismo para quem não é do mercado\" },\\n' +\n  '  \"noticias\": []   // se não houver notícia no catálogo, devolva lista vazia\\n' +\n  '  // formato quando houver: [ { \"i\": 0, \"titulo\": \"manchete reescrita de forma clara e direta\", \"contexto\": \"1 a 2 frases de por que isso importa para quem investe\" } ]\\n' +\n  '}\\n' +\n  'Qualquer campo de texto cujo assunto não tenha dado disponível deve vir como \"\" (string vazia), e \"noticias\" como lista vazia se o catálogo estiver indisponível. Em \"noticias\" escolha 5 itens, misturando Brasil e mundo, priorizando impacto de mercado e descartando fait divers. ' +\n  (fontesDisponiveis >= 3\n    ? 'Obrigatório: as 5 escolhas devem vir de pelo menos 3 portais diferentes entre os disponíveis, e no máximo 2 podem ser do mesmo portal. '\n    : '') +\n  'O campo \"i\" é obrigatório e deve ser o índice exato da notícia escolhida: é por ele que o link e a imagem originais são recuperados. Não repita índice. Texto puro nos valores, sem HTML e sem aspas duplas internas.';\n\nreturn [{ json: { prompt, indicadores, macro, movimentos, noticias, dataFmt, horaFmt, recorte, falhas, edicao: 'Briefing diário' } }];\n"
+      },
+      "name": "Consolidar dados",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2760,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "x-goog-api-key",
+              "value": "SUA_CHAVE_GEMINI"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ contents: [{ parts: [{ text: $('Consolidar dados').first().json.prompt }] }], generationConfig: { responseMimeType: 'application/json' } }) }}",
+        "options": {}
+      },
+      "name": "Análise do dia (LLM)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 10000,
+      "onError": "continueErrorOutput",
+      "position": [
+        2960,
+        0
+      ],
+      "executeOnce": true
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.groq.com/openai/v1/chat/completions",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer SUA_CHAVE_GROQ"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ model: 'openai/gpt-oss-120b', temperature: 0.3, response_format: { type: 'json_object' }, messages: [{ role: 'user', content: $('Consolidar dados').first().json.prompt }] }) }}",
+        "options": {}
+      },
+      "name": "Análise do dia (reserva)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2960,
+        200
+      ],
+      "executeOnce": true,
+      "retryOnFail": true,
+      "maxTries": 2,
+      "waitBetweenTries": 8000,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Monta o HTML do briefing. Padrão visual Malibu + estrutura editorial de research institucional.\n// Regra: este arquivo NUNCA inventa número. Recebe `base` (dados reais) e `ia` (texto do modelo).\n\nfunction montarEmail(base, ia) {\n  var NAVY = '#040F2B', BANDA = '#0A1E4A', CYAN = '#00BFFF', CYAN_DK = '#0099CC';\n  var TXT = '#1A2442', SEC = '#5A6880', MUTED = '#8B9EC7', LINHA = '#E8ECF5', OFF = '#F0F4FF';\n  var UP = '#4ADE80', DOWN = '#F87171', FLAT = '#B9C6E4';\n\n  function esc(s) {\n    return String(s == null ? '' : s)\n      .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');\n  }\n\n  // delta: trata o quase-zero (evita o \"-0,00%\") e devolve sinal, cor e rótulo\n  function lerDelta(d) {\n    if (d === null || d === undefined || !isFinite(d)) return null;\n    var zero = Math.abs(d) < 0.005;\n    return {\n      zero: zero,\n      up: !zero && d > 0,\n      down: !zero && d < 0,\n      cor: zero ? FLAT : (d > 0 ? UP : DOWN),\n      texto: zero ? '0,00%' : (d > 0 ? '+' : '−') + Math.abs(d).toFixed(2).replace('.', ',') + '%',\n      seta: zero ? '&#9644;' : (d > 0 ? '&#9650;' : '&#9660;')\n    };\n  }\n\n  // sparkline como imagem (e-mail não executa JS). Cor segue o MESMO sinal do delta do dia.\n  function spark(closes, cor) {\n    if (!closes || closes.length < 3) return '';\n    var dados = closes.filter(function (c) { return c !== null && isFinite(c); })\n      .map(function (c) { return Math.round(c * 10000) / 10000; });\n    if (dados.length < 3) return '';\n    var cfg = \"{type:'sparkline',data:{datasets:[{data:[\" + dados.join(',') +\n      \"],borderColor:'\" + cor + \"',borderWidth:2.5,fill:false,pointRadius:0}]}}\";\n    return 'https://quickchart.io/chart?w=92&h=30&c=' + encodeURIComponent(cfg);\n  }\n\n  // ---------------- faixa de indicadores ----------------\n  var linhas = (base.indicadores || []).map(function (i) {\n    var dl = lerDelta(i.delta);\n    var cor = dl ? dl.cor : FLAT;\n    var chip = '<span style=\"font-family:\\'Courier New\\',monospace;font-size:13px;color:' + MUTED + ';\">&mdash;</span>';\n    if (dl) {\n      var fundo = dl.zero ? 'rgba(139,158,199,0.15)' : (dl.up ? 'rgba(34,197,94,0.15)' : 'rgba(239,68,68,0.15)');\n      chip = '<span style=\"display:inline-block;padding:4px 12px;border-radius:999px;background:' + fundo +\n        ';color:' + cor + ';font-family:\\'Courier New\\',monospace;font-size:13px;font-weight:700;white-space:nowrap;\">' +\n        dl.seta + ' ' + dl.texto + '</span>';\n    }\n    var url = spark(i.closes, cor);\n    var grafico = url\n      ? '<img src=\"' + url + '\" width=\"92\" height=\"30\" alt=\"\" style=\"display:block;border:0;\" />'\n      : '<span style=\"font-family:Arial,sans-serif;font-size:10px;color:#2E4572;\">s/ s&eacute;rie</span>';\n\n    return '<tr>' +\n      '<td style=\"padding:11px 0;font-family:Arial,Helvetica,sans-serif;font-size:13px;letter-spacing:1.2px;color:#B9C6E4;text-transform:uppercase;font-weight:700;\">' + esc(i.nome) + '</td>' +\n      '<td align=\"center\" width=\"104\" style=\"padding:11px 0;\">' + grafico + '</td>' +\n      '<td align=\"right\" style=\"padding:11px 0;font-family:\\'Courier New\\',monospace;font-size:18px;color:#FFFFFF;font-weight:700;white-space:nowrap;\">' + esc(i.valor) + '</td>' +\n      '<td align=\"right\" width=\"108\" style=\"padding:11px 0 11px 14px;\">' + chip + '</td>' +\n      '</tr>';\n  }).join('<tr><td colspan=\"4\" style=\"border-bottom:1px solid rgba(139,158,199,0.15);font-size:0;line-height:0;\">&nbsp;</td></tr>');\n\n  // ---------------- blocos reutilizáveis ----------------\n  function kicker(num, titulo) {\n    return '<table role=\"presentation\" cellpadding=\"0\" cellspacing=\"0\" style=\"margin-bottom:12px;\"><tr>' +\n      '<td width=\"3\" style=\"background:' + CYAN + ';font-size:0;line-height:0;\">&nbsp;</td>' +\n      '<td style=\"padding-left:10px;font-family:\\'Courier New\\',monospace;font-size:11px;letter-spacing:1.6px;color:' + CYAN_DK + ';text-transform:uppercase;font-weight:700;\">' +\n      (num ? num + ' // ' : '') + titulo + '</td></tr></table>';\n  }\n\n  function secao(num, titulo, texto) {\n    if (!texto) return '';\n    return '<tr><td style=\"padding:28px 36px 0;\">' + kicker(num, titulo) +\n      '<p style=\"margin:0;font-family:Arial,Helvetica,sans-serif;font-size:14px;line-height:1.62;color:#33415C;text-align:justify;\">' + esc(texto) + '</p>' +\n      '</td></tr>';\n  }\n\n  // ---------------- notícias (link e imagem vêm do feed, nunca do modelo) ----------------\n  var catalogo = base.noticias || [];\n  var escolhidas = (ia.noticias || []).slice(0, 5).map(function (n) {\n    var orig = (typeof n.i === 'number' && catalogo[n.i]) ? catalogo[n.i] : {};\n    return {\n      titulo: n.titulo || orig.titulo || '',\n      contexto: n.contexto || '',\n      link: orig.link || '',\n      imagem: orig.imagem || '',\n      fonte: orig.fonte || ''\n    };\n  }).filter(function (n) { return n.titulo; });\n\n  function selo(fonte) {\n    if (!fonte) return '';\n    return '<span style=\"display:inline-block;padding:2px 8px;border-radius:4px;background:' + OFF +\n      ';font-family:Arial,Helvetica,sans-serif;font-size:9.5px;letter-spacing:0.8px;text-transform:uppercase;font-weight:700;color:' + CYAN_DK + ';\">' + esc(fonte) + '</span>';\n  }\n  function linkar(texto, url, estilo) {\n    return url\n      ? '<a href=\"' + esc(url) + '\" style=\"' + estilo + 'text-decoration:none;\" target=\"_blank\">' + texto + '</a>'\n      : '<span style=\"' + estilo + '\">' + texto + '</span>';\n  }\n\n  // feeds costumam servir miniatura redimensionada; para o destaque pedimos o original\n  function imagemGrande(u) {\n    var s = String(u || '');\n    var i = s.indexOf('?');\n    if (i < 0) return s;\n    var base = s.slice(0, i);\n    var resto = s.slice(i + 1).split('&').filter(function (p) {\n      return !/^(fit|resize|w|width|h|height)=/i.test(p);\n    });\n    return resto.length ? base + '?' + resto.join('&') : base;\n  }\n\n  var destaque = '';\n  if (escolhidas.length) {\n    var d = escolhidas[0];\n    destaque =\n      '<table role=\"presentation\" width=\"100%\" cellpadding=\"0\" cellspacing=\"0\" style=\"background:' + OFF + ';border-radius:12px;overflow:hidden;\">' +\n      (d.imagem\n        ? '<tr><td>' + linkar('<img src=\"' + esc(imagemGrande(d.imagem)) + '\" width=\"528\" alt=\"\" style=\"display:block;width:100%;max-width:528px;height:auto;border:0;border-radius:12px 12px 0 0;\" />', d.link, '') + '</td></tr>'\n        : '') +\n      '<tr><td style=\"padding:16px 20px 18px;\">' +\n      selo(d.fonte) +\n      '<div style=\"margin-top:8px;\">' +\n      linkar(esc(d.titulo), d.link, 'font-family:Arial,Helvetica,sans-serif;font-size:16px;font-weight:700;color:' + TXT + ';line-height:1.38;display:block;') +\n      '</div>' +\n      '<div style=\"font-family:Arial,Helvetica,sans-serif;font-size:13px;color:' + SEC + ';line-height:1.58;margin-top:7px;\">' + esc(d.contexto) + '</div>' +\n      (d.link ? '<div style=\"margin-top:10px;\"><a href=\"' + esc(d.link) + '\" target=\"_blank\" style=\"font-family:Arial,Helvetica,sans-serif;font-size:11.5px;font-weight:700;letter-spacing:0.6px;color:' + CYAN_DK + ';text-decoration:none;text-transform:uppercase;\">Ler no ' + esc(d.fonte || 'portal') + ' &rarr;</a></div>' : '') +\n      '</td></tr></table>';\n  }\n\n  var restantes = escolhidas.slice(1).map(function (n, idx) {\n    var thumb = n.imagem\n      ? '<td width=\"78\" valign=\"top\" style=\"padding-right:14px;\">' +\n        linkar('<img src=\"' + esc(n.imagem) + '\" width=\"78\" height=\"58\" alt=\"\" style=\"display:block;width:78px;height:58px;object-fit:cover;border:0;border-radius:6px;\" />', n.link, '') +\n        '</td>'\n      : '<td width=\"40\" valign=\"top\" style=\"font-family:\\'Courier New\\',monospace;font-size:18px;font-weight:700;color:' + CYAN + ';\">' + ('0' + (idx + 2)) + '</td>';\n    return '<table role=\"presentation\" width=\"100%\" cellpadding=\"0\" cellspacing=\"0\" style=\"margin-top:18px;\"><tr>' + thumb +\n      '<td valign=\"top\">' +\n      selo(n.fonte) +\n      '<div style=\"margin-top:5px;\">' +\n      linkar(esc(n.titulo), n.link, 'font-family:Arial,Helvetica,sans-serif;font-size:14px;font-weight:700;color:' + TXT + ';line-height:1.42;display:block;') +\n      '</div>' +\n      '<div style=\"font-family:Arial,Helvetica,sans-serif;font-size:12.5px;color:' + SEC + ';line-height:1.55;margin-top:4px;\">' + esc(n.contexto) + '</div>' +\n      '</td></tr></table>';\n  }).join('');\n\n  var blocoNoticias = escolhidas.length\n    ? '<tr><td style=\"padding:28px 36px 0;\">' + kicker('04', 'O que importa hoje') + destaque + restantes + '</td></tr>'\n    : '';\n\n  // ---------------- entenda (box didático, no espírito do \"por que isso acontece\") ----------------\n  var blocoEntenda = (ia.entenda && ia.entenda.texto)\n    ? '<tr><td style=\"padding:28px 36px 0;\">' +\n      '<table role=\"presentation\" width=\"100%\" cellpadding=\"0\" cellspacing=\"0\" style=\"border:1px solid ' + LINHA + ';border-radius:10px;\"><tr><td style=\"padding:16px 20px;\">' +\n      '<div style=\"font-family:Arial,Helvetica,sans-serif;font-size:13.5px;font-weight:700;color:' + TXT + ';\">' + esc(ia.entenda.titulo || 'Entenda') + '</div>' +\n      '<p style=\"margin:7px 0 0;font-family:Arial,Helvetica,sans-serif;font-size:13px;line-height:1.6;color:' + SEC + ';\">' + esc(ia.entenda.texto) + '</p>' +\n      '</td></tr></table></td></tr>'\n    : '';\n\n  // ---------------- movimentos do dia ----------------\n  var movs = (base.movimentos || []).map(function (m) {\n    var dl = lerDelta(m.delta);\n    return '<td align=\"center\" style=\"padding:12px 6px;background:' + OFF + ';border-radius:9px;\">' +\n      '<div style=\"font-family:\\'Courier New\\',monospace;font-size:12.5px;font-weight:700;color:' + TXT + ';letter-spacing:0.5px;\">' + esc(m.ticker) + '</div>' +\n      '<div style=\"font-family:Arial,Helvetica,sans-serif;font-size:11.5px;color:' + SEC + ';margin-top:3px;\">' + esc(m.valor) + '</div>' +\n      '<div style=\"font-family:\\'Courier New\\',monospace;font-size:12.5px;font-weight:700;color:' + (dl ? (dl.zero ? SEC : (dl.up ? '#16A34A' : '#DC2626')) : SEC) + ';margin-top:3px;\">' + (dl ? dl.seta + ' ' + dl.texto : '&mdash;') + '</div>' +\n      '</td>';\n  }).join('<td width=\"8\"></td>');\n\n  var blocoMovimentos = (base.movimentos || []).length\n    ? '<tr><td style=\"padding:28px 36px 0;\">' + kicker('', 'Movimentos do dia na B3') +\n      '<table role=\"presentation\" width=\"100%\" cellpadding=\"0\" cellspacing=\"0\"><tr>' + movs + '</tr></table>' +\n      '<div style=\"font-family:Arial,Helvetica,sans-serif;font-size:10.5px;color:' + MUTED + ';margin-top:8px;\">Maiores altas e quedas entre as a&ccedil;&otilde;es acompanhadas.</div>' +\n      '</td></tr>'\n    : '';\n\n  // ---------------- implicação estratégica ----------------\n  var blocoImplicacao = ia.implicacao\n    ? '<tr><td style=\"padding:28px 36px 0;\">' +\n      '<table role=\"presentation\" width=\"100%\" cellpadding=\"0\" cellspacing=\"0\" style=\"background:' + OFF + ';border-radius:10px;\"><tr>' +\n      '<td width=\"4\" style=\"background:' + CYAN + ';font-size:0;line-height:0;border-radius:10px 0 0 10px;\">&nbsp;</td>' +\n      '<td style=\"padding:18px 22px;\">' +\n      '<div style=\"font-family:\\'Courier New\\',monospace;font-size:11px;letter-spacing:1.6px;color:' + CYAN_DK + ';text-transform:uppercase;font-weight:700;margin-bottom:8px;\">03 // Implica&ccedil;&atilde;o estrat&eacute;gica</div>' +\n      '<p style=\"margin:0;font-family:Arial,Helvetica,sans-serif;font-size:13.5px;line-height:1.62;color:' + TXT + ';font-style:italic;\">' + esc(ia.implicacao) + '</p>' +\n      (ia.vetor ? '<p style=\"margin:10px 0 0;font-family:Arial,Helvetica,sans-serif;font-size:12.5px;line-height:1.55;color:' + SEC + ';\"><strong style=\"color:' + TXT + ';\">Vetor a monitorar:</strong> ' + esc(ia.vetor) + '</p>' : '') +\n      '<p style=\"margin:10px 0 0;font-family:Arial,Helvetica,sans-serif;font-size:11px;color:' + MUTED + ';\">Leitura de cen&aacute;rio, n&atilde;o recomenda&ccedil;&atilde;o de investimento.</p>' +\n      '</td></tr></table></td></tr>'\n    : '';\n\n  // ---------------- macro ----------------\n  var cards = (base.macro || []);\n  var macroCols = cards.map(function (m) {\n    return '<td align=\"center\" width=\"' + Math.floor(100 / cards.length) + '%\" style=\"padding:14px 10px;background:' + OFF + ';border-radius:10px;\">' +\n      '<div style=\"font-family:Arial,Helvetica,sans-serif;font-size:10px;letter-spacing:1.2px;color:' + MUTED + ';text-transform:uppercase;font-weight:700;\">' + esc(m.nome) + '</div>' +\n      '<div style=\"font-family:\\'Courier New\\',monospace;font-size:17px;font-weight:700;color:' + TXT + ';margin-top:5px;\">' + esc(m.valor) + '</div>' +\n      (m.nota ? '<div style=\"font-family:Arial,Helvetica,sans-serif;font-size:10px;color:' + MUTED + ';margin-top:3px;\">' + esc(m.nota) + '</div>' : '') +\n      '</td>';\n  }).join('<td width=\"10\"></td>');\n\n  var blocoMacro = cards.length\n    ? '<tr><td style=\"padding:28px 36px 0;\"><table role=\"presentation\" width=\"100%\" cellpadding=\"0\" cellspacing=\"0\"><tr>' + macroCols + '</tr></table></td></tr>'\n    : '';\n\n  // ---------------- documento ----------------\n  return '<!DOCTYPE html><html><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width,initial-scale=1\"></head>' +\n    '<body style=\"margin:0;padding:0;background:' + OFF + ';\">' +\n    '<table role=\"presentation\" width=\"100%\" cellpadding=\"0\" cellspacing=\"0\" style=\"background:' + OFF + ';\"><tr><td align=\"center\" style=\"padding:28px 12px;\">' +\n    '<table role=\"presentation\" width=\"600\" cellpadding=\"0\" cellspacing=\"0\" style=\"max-width:600px;width:100%;\">' +\n\n    // masthead\n    '<tr><td style=\"background:' + NAVY + ';border-radius:14px 14px 0 0;padding:30px 36px 26px;\">' +\n    '<table role=\"presentation\" width=\"100%\" cellpadding=\"0\" cellspacing=\"0\"><tr>' +\n    '<td style=\"font-family:Arial,Helvetica,sans-serif;font-size:16px;font-weight:800;letter-spacing:-0.2px;color:#FFFFFF;\">INTELIG&Ecirc;NCIA DE MERCADO<span style=\"color:' + CYAN + ';\">.</span></td>' +\n    '<td align=\"right\" style=\"font-family:\\'Courier New\\',monospace;font-size:10px;letter-spacing:1.4px;color:' + MUTED + ';text-transform:uppercase;\">' + esc(base.edicao || 'Briefing diário') + '</td>' +\n    '</tr></table>' +\n    '<div style=\"font-family:\\'Courier New\\',monospace;font-size:10.5px;letter-spacing:1.1px;color:' + MUTED + ';text-transform:uppercase;margin-top:20px;\">' + esc(base.dataFmt) + ' &middot; ' + esc(base.recorte || '') + '</div>' +\n    '<div style=\"font-family:Georgia,\\'Times New Roman\\',serif;font-size:25px;line-height:1.28;color:#FFFFFF;margin-top:10px;font-weight:700;\">' + esc(ia.manchete || 'Resumo do mercado') + '</div>' +\n    (ia.lead ? '<p style=\"margin:14px 0 0;font-family:Arial,Helvetica,sans-serif;font-size:13.5px;line-height:1.6;color:#B9C6E4;font-style:italic;\">' + esc(ia.lead) + '</p>' : '') +\n    '</td></tr>' +\n\n    // faixa de mercados\n    '<tr><td style=\"background:' + BANDA + ';padding:24px 36px 20px;\">' +\n    '<div style=\"font-family:Arial,Helvetica,sans-serif;font-size:11px;letter-spacing:1.8px;color:' + CYAN + ';text-transform:uppercase;font-weight:800;margin-bottom:12px;\">Mercados agora &middot; tend&ecirc;ncia 5 dias</div>' +\n    '<table role=\"presentation\" width=\"100%\" cellpadding=\"0\" cellspacing=\"0\">' + linhas + '</table>' +\n    '<div style=\"font-family:Arial,Helvetica,sans-serif;font-size:10.5px;line-height:1.5;color:#5A6880;margin-top:14px;\">Varia&ccedil;&atilde;o no dia. Minigr&aacute;fico: fechamentos dos &uacute;ltimos 5 preg&otilde;es. Captura &agrave;s ' + esc(base.horaFmt) + '.</div>' +\n    '</td></tr>' +\n\n    // corpo\n    '<tr><td style=\"background:#FFFFFF;padding:2px 0 0;\">' +\n    '<table role=\"presentation\" width=\"100%\" cellpadding=\"0\" cellspacing=\"0\">' +\n    secao('', 'Visão geral', ia.visao_geral) +\n    blocoMacro +\n    secao('01', 'Brasil', ia.brasil) +\n    blocoMovimentos +\n    secao('02', 'EUA e mundo', ia.eua_mundo) +\n    blocoImplicacao +\n    blocoEntenda +\n    blocoNoticias +\n\n    // assinatura\n    '<tr><td style=\"padding:30px 36px 0;\">' +\n    '<div style=\"border-top:2px solid ' + LINHA + ';padding-top:16px;\">' +\n    '<div style=\"font-family:Arial,Helvetica,sans-serif;font-size:13px;font-weight:700;color:' + TXT + ';\">Victor Borges</div>' +\n    '<div style=\"font-family:\\'Courier New\\',monospace;font-size:11px;letter-spacing:1px;color:' + MUTED + ';text-transform:uppercase;margin-top:3px;\">Intelig&ecirc;ncia de Mercado &middot; briefing automatizado</div>' +\n    '</div></td></tr>' +\n    '<tr><td style=\"padding:26px 36px;\"></td></tr>' +\n    '</table></td></tr>' +\n\n    // rodapé\n    '<tr><td style=\"background:' + NAVY + ';border-radius:0 0 14px 14px;padding:22px 36px;\">' +\n    '<div style=\"font-family:Arial,Helvetica,sans-serif;font-size:11px;color:' + MUTED + ';line-height:1.65;\">Gerado automaticamente &agrave;s ' + esc(base.horaFmt) + ' (hor&aacute;rio de Bras&iacute;lia). Cota&ccedil;&otilde;es: B3 via brapi, c&acirc;mbio via AwesomeAPI, &iacute;ndices e commodities via Yahoo Finance com fallback Stooq. Macro: s&eacute;ries SGS do Banco Central. Not&iacute;cias: InfoMoney, Money Times, Exame, G1 Economia e CNBC. Texto redigido por modelo de linguagem a partir desses dados; os n&uacute;meros do painel v&ecirc;m direto das fontes, sem interm&eacute;dio do modelo.</div>' +\n    ((base.falhas && base.falhas.length)\n      ? '<div style=\"font-family:\\'Courier New\\',monospace;font-size:10.5px;color:' + DOWN + ';line-height:1.6;margin-top:8px;\">Fontes indispon&iacute;veis nesta execu&ccedil;&atilde;o: ' + esc(base.falhas.join(', ')) + '</div>'\n      : '') +\n    '<div style=\"font-family:Arial,Helvetica,sans-serif;font-size:10px;color:#5A6880;line-height:1.6;margin-top:10px;\">Material de car&aacute;ter exclusivamente informativo, de uso pessoal. N&atilde;o constitui oferta, recomenda&ccedil;&atilde;o ou aconselhamento de investimento. Rentabilidade passada n&atilde;o garante resultados futuros.</div>' +\n    '</td></tr>' +\n\n    '</table></td></tr></table></body></html>';\n}\n\n\n// Pode ter vindo do provedor principal ou do reserva. Tenta os dois.\nfunction respostaLLM() {\n  const nomes = [\"Análise do dia (LLM)\",\"Análise do dia (reserva)\"];\n  for (const nome of nomes) {\n    try {\n      const r = $(nome).first().json;\n      if (r && (r.candidates || r.choices)) return r;\n    } catch (e) {}\n  }\n  return {};\n}\nconst resp = respostaLLM();\n\nfunction textoBruto(r) {\n  try { return r.candidates[0].content.parts[0].text; } catch (e) {}      // Gemini\n  try { return r.choices[0].message.content; } catch (e) {}               // Groq / Grok / OpenAI\n  return '';\n}\n\n// alguns modelos embrulham o JSON em bloco de markdown\nfunction soJSON(t) {\n  const m = String(t).match(/\\{[\\s\\S]*\\}/);\n  return m ? m[0] : t;\n}\n\nlet ia = {};\nconst bruto = textoBruto(resp);\ntry {\n  ia = JSON.parse(soJSON(bruto));\n} catch (e) {\n  ia = {\n    manchete: 'Resumo do mercado',\n    lead: '',\n    visao_geral: bruto ? String(bruto).slice(0, 600) : 'Análise indisponível nesta execução. Os dados do painel acima vêm direto das fontes e seguem válidos.',\n    brasil: '', eua_mundo: '', implicacao: '', vetor: '', noticias: []\n  };\n}\nconst base = $('Consolidar dados').first().json;\nreturn [{ json: { html: montarEmail(base, ia) } }];\n"
+      },
+      "name": "Montar e-mail (Malibu)",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3160,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "fromEmail": "seu-email@gmail.com",
+        "toEmail": "seu-email@exemplo.com",
+        "subject": "={{ 'Briefing de Mercado — ' + $now.setZone('America/Sao_Paulo').toFormat('dd/LL/yyyy') }}",
+        "emailFormat": "html",
+        "html": "={{ $json.html }}",
+        "options": {}
+      },
+      "name": "Enviar e-mail",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [
+        3360,
+        0
+      ],
+      "executeOnce": true
+    }
+  ],
+  "connections": {
+    "Seg-Sex 7h30": {
+      "main": [
+        [
+          {
+            "node": "Ibovespa (brapi)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ibovespa (brapi)": {
+      "main": [
+        [
+          {
+            "node": "Ibovespa 5d (Yahoo)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ibovespa 5d (Yahoo)": {
+      "main": [
+        [
+          {
+            "node": "Câmbio (AwesomeAPI)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Câmbio (AwesomeAPI)": {
+      "main": [
+        [
+          {
+            "node": "Histórico Dólar (AwesomeAPI)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Histórico Dólar (AwesomeAPI)": {
+      "main": [
+        [
+          {
+            "node": "Histórico Euro (AwesomeAPI)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Histórico Euro (AwesomeAPI)": {
+      "main": [
+        [
+          {
+            "node": "Selic (BCB)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Selic (BCB)": {
+      "main": [
+        [
+          {
+            "node": "IPCA (BCB)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IPCA (BCB)": {
+      "main": [
+        [
+          {
+            "node": "S&P 500 (Yahoo)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "S&P 500 (Yahoo)": {
+      "main": [
+        [
+          {
+            "node": "S&P 500 (Stooq)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "S&P 500 (Stooq)": {
+      "main": [
+        [
+          {
+            "node": "Nasdaq (Yahoo)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Nasdaq (Yahoo)": {
+      "main": [
+        [
+          {
+            "node": "Nasdaq (Stooq)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Nasdaq (Stooq)": {
+      "main": [
+        [
+          {
+            "node": "Petróleo WTI (Yahoo)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Petróleo WTI (Yahoo)": {
+      "main": [
+        [
+          {
+            "node": "Petróleo WTI (Stooq)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Petróleo WTI (Stooq)": {
+      "main": [
+        [
+          {
+            "node": "Ouro (Yahoo)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ouro (Yahoo)": {
+      "main": [
+        [
+          {
+            "node": "Ouro (Stooq)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ouro (Stooq)": {
+      "main": [
+        [
+          {
+            "node": "Ranking B3 altas (brapi)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ranking B3 altas (brapi)": {
+      "main": [
+        [
+          {
+            "node": "Ranking B3 baixas (brapi)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ranking B3 baixas (brapi)": {
+      "main": [
+        [
+          {
+            "node": "Notícias BR (InfoMoney)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Notícias BR (InfoMoney)": {
+      "main": [
+        [
+          {
+            "node": "Notícias BR (Money Times)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Notícias BR (Money Times)": {
+      "main": [
+        [
+          {
+            "node": "Notícias BR (Exame)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Notícias BR (Exame)": {
+      "main": [
+        [
+          {
+            "node": "Notícias BR (G1 Economia)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Notícias BR (G1 Economia)": {
+      "main": [
+        [
+          {
+            "node": "Notícias Global (CNBC)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Notícias Global (CNBC)": {
+      "main": [
+        [
+          {
+            "node": "Consolidar dados",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Consolidar dados": {
+      "main": [
+        [
+          {
+            "node": "Análise do dia (LLM)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Análise do dia (LLM)": {
+      "main": [
+        [
+          {
+            "node": "Montar e-mail (Malibu)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Análise do dia (reserva)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Montar e-mail (Malibu)": {
+      "main": [
+        [
+          {
+            "node": "Enviar e-mail",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Análise do dia (reserva)": {
+      "main": [
+        [
+          {
+            "node": "Montar e-mail (Malibu)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "timezone": "America/Sao_Paulo",
+    "executionOrder": "v1"
+  },
+  "pinData": {}
+}
