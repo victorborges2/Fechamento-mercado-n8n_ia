@@ -84,8 +84,8 @@ Para as notícias vale a mesma regra. O modelo escolhe quais destacar informando
 O gerador roda com dados de exemplo e produz o preview do e-mail. Não precisa de chave, conta ou acesso a sistema nenhum.
 
 ```bash
-git clone https://github.com/victorborges2/fechamento-mercado-n8n.git
-cd fechamento-mercado-n8n/build
+git clone https://github.com/victorborges2/Fechamento-mercado-n8n_ia.git
+cd Fechamento-mercado-n8n_ia/build
 node make.js
 ```
 
