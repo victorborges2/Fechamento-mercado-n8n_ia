@@ -14,6 +14,24 @@ const falhou = (nome, e) => {
   falhas.push(nome + ' (' + String(msg).slice(0, 90) + ')');
 };
 
+// ---------- Validação cruzada ----------
+// O chip de variação e o minigráfico vêm de campos diferentes e podem divergir.
+// Quando isso acontece, um dos dois está mentindo. Em vez de publicar e torcer,
+// o indicador é marcado e o motivo vai para o rodapé do e-mail.
+const alertas = [];
+const conferir = (nome, delta, closes) => {
+  if (delta == null || !isFinite(delta) || !closes || closes.length < 2) return true;
+  const a = closes[closes.length - 2], b = closes[closes.length - 1];
+  if (!a) return true;
+  const implicito = ((b - a) / a) * 100;
+  const divergencia = Math.abs(implicito - delta);
+  if (divergencia > 0.3) {
+    alertas.push(nome + ': chip diz ' + delta.toFixed(2) + '% mas a série indica ' + implicito.toFixed(2) + '%');
+    return false;
+  }
+  return true;
+};
+
 // n8n entrega array JSON como itens separados; isto tolera os dois formatos
 const itens = (node) => {
   const arr = $(node).all().map(i => i.json);
@@ -36,27 +54,35 @@ try {
     } catch (e) {}
   }
   if (!closes.length) falhou('série 5d do Ibovespa', new Error('brapi sem histórico e Yahoo indisponível'));
-  indicadores.push({
-    nome: 'Ibovespa',
-    valor: fmtBR(ibov.regularMarketPrice, 0) + ' pts',
-    delta: ibov.regularMarketChangePercent ?? null,
-    closes
-  });
+  const dIbov = ibov.regularMarketChangePercent ?? null;
+  conferir('Ibovespa', dIbov, closes);
+  indicadores.push({ nome: 'Ibovespa', valor: fmtBR(ibov.regularMarketPrice, 0) + ' pts', delta: dIbov, closes });
   paraTexto.push('Ibovespa: ' + fmtBR(ibov.regularMarketPrice, 0) + ' pts (' + (ibov.regularMarketChangePercent ?? 0).toFixed(2) + '% no dia)');
 } catch (e) { falhou('Ibovespa (brapi)', e); }
 
 // ---------- Câmbio (AwesomeAPI) ----------
-const fxHist = (node, rotulo) => {
+// A cotação do painel vem do endpoint `last` (spot no instante da captura) e a
+// série vem do `daily`. Quando o `daily` ainda não registrou o dia corrente, o
+// gráfico termina no fechamento de ontem enquanto o percentual já fala de hoje:
+// os dois passam a contar histórias diferentes. Por isso o spot é anexado ao
+// fim da série, a menos que já esteja lá.
+const fxHist = (node, rotulo, spot) => {
   try {
     const lista = itens(node).map(x => Number(x.bid)).filter(v => isFinite(v));
     if (lista.length < 3) throw new Error('série curta');
-    return lista.reverse();
+    const serie = lista.reverse();
+    const atual = Number(spot);
+    if (isFinite(atual) && Math.abs(serie[serie.length - 1] - atual) > 1e-6) serie.push(atual);
+    return serie.slice(-6);
   } catch (e) { falhou('série 5d do ' + rotulo, e); return []; }
 };
 try {
   const fx = $('Câmbio (AwesomeAPI)').first().json;
-  indicadores.push({ nome: 'Dólar', valor: 'R$ ' + fmtBR(fx.USDBRL.bid, 2), delta: Number(fx.USDBRL.pctChange), closes: fxHist('Histórico Dólar (AwesomeAPI)', 'dólar') });
-  indicadores.push({ nome: 'Euro', valor: 'R$ ' + fmtBR(fx.EURBRL.bid, 2), delta: Number(fx.EURBRL.pctChange), closes: fxHist('Histórico Euro (AwesomeAPI)', 'euro') });
+  const cUsd = fxHist('Histórico Dólar (AwesomeAPI)', 'dólar', fx.USDBRL.bid), dUsd = Number(fx.USDBRL.pctChange);
+  const cEur = fxHist('Histórico Euro (AwesomeAPI)', 'euro', fx.EURBRL.bid), dEur = Number(fx.EURBRL.pctChange);
+  conferir('Dólar', dUsd, cUsd); conferir('Euro', dEur, cEur);
+  indicadores.push({ nome: 'Dólar', valor: 'R$ ' + fmtBR(fx.USDBRL.bid, 2), delta: dUsd, closes: cUsd });
+  indicadores.push({ nome: 'Euro', valor: 'R$ ' + fmtBR(fx.EURBRL.bid, 2), delta: dEur, closes: cEur });
   paraTexto.push('Dólar: R$ ' + fmtBR(fx.USDBRL.bid, 2) + ' (' + fx.USDBRL.pctChange + '% no dia)');
   paraTexto.push('Euro: R$ ' + fmtBR(fx.EURBRL.bid, 2) + ' (' + fx.EURBRL.pctChange + '% no dia)');
 } catch (e) { falhou('Câmbio (AwesomeAPI)', e); }
@@ -66,9 +92,23 @@ const doYahoo = (node) => {
   const r = $(node).first().json.chart.result[0];
   const m = r.meta;
   if (m.regularMarketPrice == null) throw new Error('sem preço');
-  const ant = m.chartPreviousClose ?? m.previousClose;
   let closes = [];
   try { closes = r.indicators.quote[0].close.filter(c => c != null).slice(-6); } catch (e) {}
+
+  // A variação do dia é o último fechamento contra o ANTERIOR.
+  //
+  // Cuidado com o `chartPreviousClose` do Yahoo: ele é o fechamento anterior ao
+  // INÍCIO da janela pedida. Com range=5d ele devolve o fechamento de cinco
+  // pregões atrás, e usá-lo aqui rotula uma variação semanal como "no dia".
+  // Foi o que aconteceu em 05/11/2026: o WTI subiu 3,50% e o e-mail publicou
+  // queda de 5,45%, que era a variação contra o começo da janela.
+  //
+  // Calcular a partir da própria série garante que o número e o minigráfico
+  // contem a mesma história. `previousClose` entra só como reserva.
+  let ant = null;
+  if (closes.length >= 2) ant = closes[closes.length - 2];
+  else if (m.previousClose != null) ant = m.previousClose;
+
   return { preco: m.regularMarketPrice, delta: ant ? ((m.regularMarketPrice - ant) / ant) * 100 : null, closes };
 };
 const doStooq = (node) => {
@@ -84,6 +124,7 @@ const ativo = (nome, nodeYahoo, nodeStooq, prefixo, dec) => {
   try { r = doYahoo(nodeYahoo); } catch (e) { ultimoErro = e; }
   if (!r) { try { r = doStooq(nodeStooq); falhas.push(nome + ': Yahoo fora, usei Stooq'); } catch (e) { ultimoErro = e; } }
   if (!r) { falhou(nome, ultimoErro || new Error('Yahoo e Stooq indisponíveis')); return; }
+  conferir(nome, r.delta, r.closes);
   indicadores.push({ nome, valor: prefixo + fmtBR(r.preco, dec), delta: r.delta, closes: r.closes });
   paraTexto.push(nome + ': ' + prefixo + fmtBR(r.preco, dec) + ' (' + (r.delta ?? 0).toFixed(2) + '% no dia)');
 };
@@ -113,15 +154,40 @@ const pegarRanking = (node, rotulo, quantos) => {
   if (!bons.length) throw new Error(rotulo + ': nenhum papel passou no filtro de liquidez');
   return bons.slice(0, quantos);
 };
+// O código sozinho não diz nada para quem não vive de mercado. A brapi devolve
+// o nome da empresa junto da cotação; aqui ele é limpo das formalidades
+// societárias que só ocupam espaço. Sem nome confiável, fica só o código.
+const nomeCurto = (bruto) => {
+  let n = String(bruto || '').trim();
+  if (!n) return '';
+  n = n.replace(/\s+/g, ' ')
+       .replace(/\b(S\.?A\.?|SA|S\/A|ON|PN[A-B]?|NM|ED|EJ|EB|UNT|CIA|COMPANHIA|COMPANY|PARTICIPACOES|PARTICIPAÇÕES|HOLDING|HOLDINGS|BRASIL(EIRA|EIRO)?\s+DE)\b\.?/gi, ' ')
+       .replace(/[-–]\s*$/, '')
+       .replace(/\s{2,}/g, ' ')
+       .trim();
+  if (n.length < 2 || n.length > 26) return n.length > 26 ? n.slice(0, 24).trim() + '…' : '';
+  return n;
+};
+const comNome = (a) => {
+  const n = nomeCurto(a.name || a.longName || a.shortName);
+  return n ? a.stock + ' (' + n + ')' : a.stock;
+};
+const registrar = (a) => movimentos.push({
+  ticker: a.stock,
+  empresa: nomeCurto(a.name || a.longName || a.shortName),
+  logo: typeof a.logo === 'string' && /^https?:\/\//.test(a.logo) ? a.logo : '',
+  valor: 'R$ ' + fmtBR(a.close, 2),
+  delta: Number(a.change)
+});
 try {
   const altas = pegarRanking('Ranking B3 altas (brapi)', 'altas', 2);
-  altas.forEach(a => movimentos.push({ ticker: a.stock, valor: 'R$ ' + fmtBR(a.close, 2), delta: Number(a.change) }));
-  paraTexto.push('Maiores altas da B3: ' + altas.map(a => a.stock + ' ' + a.change.toFixed(2) + '%').join(', '));
+  altas.forEach(registrar);
+  paraTexto.push('Maiores altas da B3: ' + altas.map(a => comNome(a) + ' ' + a.change.toFixed(2) + '%').join(', '));
 } catch (e) { falhou('Maiores altas (brapi)', e); }
 try {
   const baixas = pegarRanking('Ranking B3 baixas (brapi)', 'baixas', 2);
-  baixas.forEach(a => movimentos.push({ ticker: a.stock, valor: 'R$ ' + fmtBR(a.close, 2), delta: Number(a.change) }));
-  paraTexto.push('Maiores quedas da B3: ' + baixas.map(a => a.stock + ' ' + a.change.toFixed(2) + '%').join(', '));
+  baixas.forEach(registrar);
+  paraTexto.push('Maiores quedas da B3: ' + baixas.map(a => comNome(a) + ' ' + a.change.toFixed(2) + '%').join(', '));
 } catch (e) { falhou('Maiores quedas (brapi)', e); }
 
 // ---------- Macro (séries SGS do Banco Central) ----------
@@ -138,8 +204,13 @@ try {
 } catch (e) { falhou('Selic (BCB)', e); }
 try {
   const i = serieBCB('IPCA (BCB)');
-  macro.push({ nome: 'IPCA', valor: String(i.valor).replace('.', ',') + '%', nota: 'último mês fechado' });
-  paraTexto.push('IPCA do último mês fechado: ' + i.valor + '%');
+  // o SGS devolve a data no formato dd/mm/aaaa; o mês importa para ninguém
+  // confundir com a inflação do mês corrente
+  const MES = ['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'];
+  let ref = 'último mês fechado';
+  try { const p = String(i.data).split('/'); ref = MES[Number(p[1]) - 1] + '/' + p[2]; } catch (e) {}
+  macro.push({ nome: 'IPCA', valor: String(i.valor).replace('.', ',') + '%', nota: ref });
+  paraTexto.push('IPCA de ' + ref + ': ' + i.valor + '%');
 } catch (e) { falhou('IPCA (BCB)', e); }
 
 // ---------- Notícias: vários portais, com link e imagem reais ----------
@@ -221,6 +292,7 @@ if (hora < 10) {
 }
 
 const prompt = 'Você assina o briefing de mercado de ' + dataFmt + ', publicado ' + recorte + ' (' + horaFmt + ' de Brasília), para um investidor brasileiro.\n\n' +
+  'AO CITAR AÇÃO: escreva o nome da empresa seguido do código entre parênteses, como em CSN Mineração (CMIN3). Os nomes vêm na lista de dados; se um código aparecer lá sem nome, cite apenas o código, nunca invente a empresa. Se uma manchete trouxer número que conflite com o painel, não repita esse número no seu texto.\n\n' +
   'ESTILO: newsletter de research, escrita fluida, frases encadeadas por causa e efeito. Sempre que citar projeção ou opinião de terceiro, atribua a quem disse. Quando um número for grande demais para intuir, dê uma referência de comparação. Proibido: emoji, exclamação, clichê de mercado, e qualquer número que não esteja nos dados abaixo. ' + instrucaoTempo + '\n\n' +
   'DADOS DE MERCADO (esta é a lista COMPLETA do que existe hoje):\n' + paraTexto.join('\n') + '\n\n' +
   'REGRA ABSOLUTA: só escreva sobre indicador que aparece na lista acima. Se não há dado de índices americanos, commodities ou macro, devolva STRING VAZIA ("") no campo correspondente. Uma seção omitida é correta; uma seção escrita sem dado é erro grave. Não use conhecimento próprio sobre o mercado para preencher lacuna, não descreva clima de mercado genérico ("postura defensiva", "cautela dos investidores") sem número que sustente.\n\n' +
@@ -244,4 +316,4 @@ const prompt = 'Você assina o briefing de mercado de ' + dataFmt + ', publicado
     : '') +
   'O campo "i" é obrigatório e deve ser o índice exato da notícia escolhida: é por ele que o link e a imagem originais são recuperados. Não repita índice. Texto puro nos valores, sem HTML e sem aspas duplas internas.';
 
-return [{ json: { prompt, indicadores, macro, movimentos, noticias, dataFmt, horaFmt, recorte, falhas, edicao: 'Briefing diário' } }];
+return [{ json: { prompt, indicadores, macro, movimentos, noticias, dataFmt, horaFmt, recorte, falhas, alertas } }];

@@ -1,4 +1,4 @@
-// Monta o HTML do briefing. Padrão visual Malibu + estrutura editorial de research institucional.
+// Monta o HTML do e-mail de fechamento. Padrão visual Malibu + estrutura editorial de research institucional.
 // Regra: este arquivo NUNCA inventa número. Recebe `base` (dados reais) e `ia` (texto do modelo).
 
 function montarEmail(base, ia) {
@@ -161,17 +161,47 @@ function montarEmail(base, ia) {
   // ---------------- movimentos do dia ----------------
   var movs = (base.movimentos || []).map(function (m) {
     var dl = lerDelta(m.delta);
-    return '<td align="center" style="padding:12px 6px;background:' + OFF + ';border-radius:9px;">' +
+    var logo = m.logo
+      ? '<img src="' + esc(m.logo) + '" width="26" height="26" alt="" style="display:block;margin:0 auto 6px;width:26px;height:26px;border:0;border-radius:5px;" />'
+      : '';
+    return '<td align="center" valign="top" style="padding:12px 6px;background:' + OFF + ';border-radius:9px;">' +
+      logo +
       '<div style="font-family:\'Courier New\',monospace;font-size:12.5px;font-weight:700;color:' + TXT + ';letter-spacing:0.5px;">' + esc(m.ticker) + '</div>' +
-      '<div style="font-family:Arial,Helvetica,sans-serif;font-size:11.5px;color:' + SEC + ';margin-top:3px;">' + esc(m.valor) + '</div>' +
+      (m.empresa ? '<div style="font-family:Arial,Helvetica,sans-serif;font-size:10px;color:' + MUTED + ';margin-top:2px;line-height:1.25;">' + esc(m.empresa) + '</div>' : '') +
+      '<div style="font-family:Arial,Helvetica,sans-serif;font-size:11.5px;color:' + SEC + ';margin-top:4px;">' + esc(m.valor) + '</div>' +
       '<div style="font-family:\'Courier New\',monospace;font-size:12.5px;font-weight:700;color:' + (dl ? (dl.zero ? SEC : (dl.up ? '#16A34A' : '#DC2626')) : SEC) + ';margin-top:3px;">' + (dl ? dl.seta + ' ' + dl.texto : '&mdash;') + '</div>' +
       '</td>';
   }).join('<td width="8"></td>');
 
+  // ---------------- gráfico do dia ----------------
+  // Mesma informação da faixa de indicadores, só que de um golpe de olho: quem
+  // ganhou e quem perdeu o dia. Serve também para quebrar o bloco de texto.
+  // Renderizado como imagem porque e-mail não executa JavaScript.
+  var comDelta = (base.indicadores || []).filter(function (i) {
+    return i.delta !== null && i.delta !== undefined && isFinite(i.delta);
+  });
+  var blocoGrafico = '';
+  if (comDelta.length >= 3) {
+    var rotulos = comDelta.map(function (i) { return "'" + String(i.nome).replace(/'/g, '') + "'"; });
+    var valores = comDelta.map(function (i) { return Math.round(i.delta * 100) / 100; });
+    var cores = comDelta.map(function (i) { return "'" + (i.delta >= 0 ? '#16A34A' : '#DC2626') + "'"; });
+    var cfg = "{type:'horizontalBar',data:{labels:[" + rotulos.join(',') + "],datasets:[{data:[" + valores.join(',') +
+      "],backgroundColor:[" + cores.join(',') + "],borderWidth:0,barPercentage:0.68}]}," +
+      "options:{legend:{display:false},layout:{padding:{right:14}}," +
+      "scales:{xAxes:[{ticks:{fontColor:'#8B9EC7',fontSize:11,callback:function(v){return v+'%'}},gridLines:{color:'#E8ECF5',zeroLineColor:'#8B9EC7'}}]," +
+      "yAxes:[{ticks:{fontColor:'#1A2442',fontSize:12,fontStyle:'bold'},gridLines:{display:false}}]}," +
+      "plugins:{datalabels:{display:false}}}}";
+    var url = 'https://quickchart.io/chart?w=528&h=250&bkg=%23FFFFFF&c=' + encodeURIComponent(cfg);
+    blocoGrafico = '<tr><td style="padding:28px 36px 0;">' + kicker('', 'Como fechou o dia') +
+      '<img src="' + url + '" width="528" alt="Varia&ccedil;&atilde;o do dia por indicador" style="display:block;width:100%;max-width:528px;height:auto;border:0;" />' +
+      '<div style="font-family:Arial,Helvetica,sans-serif;font-size:10.5px;color:' + MUTED + ';margin-top:6px;">Varia&ccedil;&atilde;o percentual contra o fechamento anterior.</div>' +
+      '</td></tr>';
+  }
+
   var blocoMovimentos = (base.movimentos || []).length
     ? '<tr><td style="padding:28px 36px 0;">' + kicker('', 'Movimentos do dia na B3') +
       '<table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr>' + movs + '</tr></table>' +
-      '<div style="font-family:Arial,Helvetica,sans-serif;font-size:10.5px;color:' + MUTED + ';margin-top:8px;">Maiores altas e quedas entre as a&ccedil;&otilde;es acompanhadas.</div>' +
+      '<div style="font-family:Arial,Helvetica,sans-serif;font-size:10.5px;color:' + MUTED + ';margin-top:8px;">Maiores altas e quedas do dia entre a&ccedil;&otilde;es, units e ETFs da B3 com mais de R$ 1 milh&atilde;o negociado. Exclui fracion&aacute;rios e BDRs.</div>' +
       '</td></tr>'
     : '';
 
@@ -211,8 +241,7 @@ function montarEmail(base, ia) {
     // masthead
     '<tr><td style="background:' + NAVY + ';border-radius:14px 14px 0 0;padding:30px 36px 26px;">' +
     '<table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr>' +
-    '<td style="font-family:Arial,Helvetica,sans-serif;font-size:16px;font-weight:800;letter-spacing:-0.2px;color:#FFFFFF;">INTELIG&Ecirc;NCIA DE MERCADO<span style="color:' + CYAN + ';">.</span></td>' +
-    '<td align="right" style="font-family:\'Courier New\',monospace;font-size:10px;letter-spacing:1.4px;color:' + MUTED + ';text-transform:uppercase;">' + esc(base.edicao || 'Briefing diário') + '</td>' +
+    '<td style="font-family:Arial,Helvetica,sans-serif;font-size:16px;font-weight:800;letter-spacing:-0.2px;color:#FFFFFF;">FECHAMENTO DE MERCADO<span style="color:' + CYAN + ';">.</span></td>' +
     '</tr></table>' +
     '<div style="font-family:\'Courier New\',monospace;font-size:10.5px;letter-spacing:1.1px;color:' + MUTED + ';text-transform:uppercase;margin-top:20px;">' + esc(base.dataFmt) + ' &middot; ' + esc(base.recorte || '') + '</div>' +
     '<div style="font-family:Georgia,\'Times New Roman\',serif;font-size:25px;line-height:1.28;color:#FFFFFF;margin-top:10px;font-weight:700;">' + esc(ia.manchete || 'Resumo do mercado') + '</div>' +
@@ -223,7 +252,7 @@ function montarEmail(base, ia) {
     '<tr><td style="background:' + BANDA + ';padding:24px 36px 20px;">' +
     '<div style="font-family:Arial,Helvetica,sans-serif;font-size:11px;letter-spacing:1.8px;color:' + CYAN + ';text-transform:uppercase;font-weight:800;margin-bottom:12px;">Mercados agora &middot; tend&ecirc;ncia 5 dias</div>' +
     '<table role="presentation" width="100%" cellpadding="0" cellspacing="0">' + linhas + '</table>' +
-    '<div style="font-family:Arial,Helvetica,sans-serif;font-size:10.5px;line-height:1.5;color:#5A6880;margin-top:14px;">Varia&ccedil;&atilde;o no dia. Minigr&aacute;fico: fechamentos dos &uacute;ltimos 5 preg&otilde;es. Captura &agrave;s ' + esc(base.horaFmt) + '.</div>' +
+    '<div style="font-family:Arial,Helvetica,sans-serif;font-size:10.5px;line-height:1.5;color:#5A6880;margin-top:14px;">Varia&ccedil;&atilde;o contra o fechamento anterior. Minigr&aacute;fico: os 5 &uacute;ltimos fechamentos, mesma s&eacute;rie que gera o percentual. C&acirc;mbio: cota&ccedil;&atilde;o spot no hor&aacute;rio da captura, n&atilde;o o fechamento comercial. Captura &agrave;s ' + esc(base.horaFmt) + '.</div>' +
     '</td></tr>' +
 
     // corpo
@@ -234,6 +263,7 @@ function montarEmail(base, ia) {
     secao('01', 'Brasil', ia.brasil) +
     blocoMovimentos +
     secao('02', 'EUA e mundo', ia.eua_mundo) +
+    blocoGrafico +
     blocoImplicacao +
     blocoEntenda +
     blocoNoticias +
@@ -242,7 +272,7 @@ function montarEmail(base, ia) {
     '<tr><td style="padding:30px 36px 0;">' +
     '<div style="border-top:2px solid ' + LINHA + ';padding-top:16px;">' +
     '<div style="font-family:Arial,Helvetica,sans-serif;font-size:13px;font-weight:700;color:' + TXT + ';">Victor Borges</div>' +
-    '<div style="font-family:\'Courier New\',monospace;font-size:11px;letter-spacing:1px;color:' + MUTED + ';text-transform:uppercase;margin-top:3px;">Intelig&ecirc;ncia de Mercado &middot; briefing automatizado</div>' +
+    '<div style="font-family:\'Courier New\',monospace;font-size:11px;letter-spacing:1px;color:' + MUTED + ';text-transform:uppercase;margin-top:3px;">Fechamento de Mercado &middot; envio automatizado</div>' +
     '</div></td></tr>' +
     '<tr><td style="padding:26px 36px;"></td></tr>' +
     '</table></td></tr>' +
@@ -250,6 +280,9 @@ function montarEmail(base, ia) {
     // rodapé
     '<tr><td style="background:' + NAVY + ';border-radius:0 0 14px 14px;padding:22px 36px;">' +
     '<div style="font-family:Arial,Helvetica,sans-serif;font-size:11px;color:' + MUTED + ';line-height:1.65;">Gerado automaticamente &agrave;s ' + esc(base.horaFmt) + ' (hor&aacute;rio de Bras&iacute;lia). Cota&ccedil;&otilde;es: B3 via brapi, c&acirc;mbio via AwesomeAPI, &iacute;ndices e commodities via Yahoo Finance com fallback Stooq. Macro: s&eacute;ries SGS do Banco Central. Not&iacute;cias: InfoMoney, Money Times, Exame, G1 Economia e CNBC. Texto redigido por modelo de linguagem a partir desses dados; os n&uacute;meros do painel v&ecirc;m direto das fontes, sem interm&eacute;dio do modelo.</div>' +
+    ((base.alertas && base.alertas.length)
+      ? '<div style="font-family:\'Courier New\',monospace;font-size:10.5px;color:#FBBF24;line-height:1.6;margin-top:8px;">Inconsist&ecirc;ncia detectada entre percentual e s&eacute;rie: ' + esc(base.alertas.join(' | ')) + '</div>'
+      : '') +
     ((base.falhas && base.falhas.length)
       ? '<div style="font-family:\'Courier New\',monospace;font-size:10.5px;color:' + DOWN + ';line-height:1.6;margin-top:8px;">Fontes indispon&iacute;veis nesta execu&ccedil;&atilde;o: ' + esc(base.falhas.join(', ')) + '</div>'
       : '') +

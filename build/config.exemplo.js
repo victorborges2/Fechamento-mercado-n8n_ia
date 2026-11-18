@@ -13,8 +13,14 @@ module.exports = {
   // Conta que envia (a mesma da senha de app do SMTP)
   de: 'seu-email@gmail.com',
 
-  // Horário do disparo, em formato cron. Padrão: 7h30, de segunda a sexta
-  cron: '30 7 * * 1-5',
+  // Horário do disparo, em formato cron. Padrão: 20h, de segunda a sexta.
+  //
+  // Por que 20h: a B3 encerra entre 16h55 e 18h dependendo do horário de verão
+  // americano, o after-market vai até por volta das 18h, Nova York fecha às 18h
+  // ou 19h pelo horário de Brasília, e os portais levam mais um tempo para
+  // publicar as matérias de fechamento. Às 20h tudo já consolidou, em qualquer
+  // época do ano. Rodar antes disso traz número parcial e notícia incompleta.
+  cron: '0 20 * * 1-5',
 
   // Quem redige o texto do briefing: 'gemini' ou 'grok'.
   // Trocar aqui e rodar `node make.js` já gera o nó certo, com a URL,

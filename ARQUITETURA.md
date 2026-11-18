@@ -1,7 +1,7 @@
-# Arquitetura do briefing — esqueleto lógico
+# Arquitetura do Fechamento de Mercado — esqueleto lógico
 
 > Leia este arquivo **antes** de mexer em qualquer coisa do workflow. Ele existe para que decisões já tomadas não sejam desfeitas por esquecimento.
-> Versão corrente: **v6**. Arquivo gerado: `workflow/briefing-mercado.local.json`.
+> Versão corrente: **v8**. Arquivo gerado: `workflow/fechamento-mercado.local.json`.
 
 ---
 
@@ -11,12 +11,14 @@
 2. **O LLM não escolhe link nem imagem.** Ele seleciona a notícia **pelo índice** do catálogo; `link`, `imagem` e `fonte` são recuperados do feed pelo código.
 3. **O JSON do workflow é gerado, nunca editado à mão.** Fonte da verdade: `build/`. Comando: `node make.js`.
 4. **Todo nó de coleta usa `onError: continueRegularOutput`.** Uma API fora do ar não pode derrubar o briefing.
-5. **Toda fonte que falha entra em `falhas[]`** e é impressa em vermelho no rodapé do e-mail. Proibido `catch` silencioso.
-6. **O envio é SMTP (`n8n-nodes-base.emailSend`), não o nó Gmail.** O OAuth do Gmail expira a cada 7 dias enquanto o app estiver em modo de teste no Google Cloud, e publicar exigiria domínio próprio e política de privacidade. A senha de app não expira.
-7. **Nome de nó é contrato.** Os nós de código referenciam os outros por nome exato (`$('Gemini — Análise do dia')`). Renomear ou duplicar um nó (virando "... dia1") quebra o fluxo em silêncio.
-8. `make.js` **valida a sintaxe** dos dois nós de código antes de gerar. Se abortar, nada é gravado.
-9. **Há um provedor de reserva.** O nó principal usa `onError: continueErrorOutput`: a falha sai por uma segunda saída em vez de derrubar o fluxo, e o nó de reserva assume. Os dois convergem na montagem, que lê de qualquer um dos dois. Use provedores de **casas diferentes**: cota é contada por provedor, então reserva na mesma casa não ajuda em dia de limite batido. O corpo dos dois lê o prompt de `$('Consolidar dados')`, nunca de `$json`, porque a entrada do reserva é a saída de erro do principal.
-10. **O provedor de LLM é intercambiável.** O nó se chama `Análise do dia (LLM)`, nome neutro, porque é referenciado pelo nó de montagem. Trocar de provedor é editar `build/config.local.js` e rodar `node make.js`: a URL, o header e o formato do corpo mudam juntos. A leitura da resposta entende os dois dialetos (`candidates[].content.parts[].text` do Gemini e `choices[].message.content` do padrão OpenAI).
+5. **Percentual e minigráfico saem da MESMA série.** A variação do dia é o último fechamento contra o anterior, calculada a partir dos mesmos pontos que desenham o gráfico. Nunca usar `chartPreviousClose` do Yahoo: ele é o fechamento anterior ao início da janela pedida, então com `range=5d` devolve a variação de cinco pregões com rótulo de "no dia".
+6. **Toda divergência entre chip e série vira alerta.** `conferir()` compara os dois e, acima de 0,3 ponto percentual, registra em `alertas[]`, impresso em amarelo no rodapé do e-mail.
+7. **Toda fonte que falha entra em `falhas[]`** e é impressa em vermelho no rodapé do e-mail. Proibido `catch` silencioso.
+8. **O envio é SMTP (`n8n-nodes-base.emailSend`), não o nó Gmail.** O OAuth do Gmail expira a cada 7 dias enquanto o app estiver em modo de teste no Google Cloud, e publicar exigiria domínio próprio e política de privacidade. A senha de app não expira.
+9. **Nome de nó é contrato.** Os nós de código referenciam os outros por nome exato (`$('Gemini — Análise do dia')`). Renomear ou duplicar um nó (virando "... dia1") quebra o fluxo em silêncio.
+10. `make.js` **valida a sintaxe** dos dois nós de código antes de gerar. Se abortar, nada é gravado.
+11. **Há um provedor de reserva.** O nó principal usa `onError: continueErrorOutput`: a falha sai por uma segunda saída em vez de derrubar o fluxo, e o nó de reserva assume. Os dois convergem na montagem, que lê de qualquer um dos dois. Use provedores de **casas diferentes**: cota é contada por provedor, então reserva na mesma casa não ajuda em dia de limite batido. O corpo dos dois lê o prompt de `$('Consolidar dados')`, nunca de `$json`, porque a entrada do reserva é a saída de erro do principal.
+12. **O provedor de LLM é intercambiável.** O nó se chama `Análise do dia (LLM)`, nome neutro, porque é referenciado pelo nó de montagem. Trocar de provedor é editar `build/config.local.js` e rodar `node make.js`: a URL, o header e o formato do corpo mudam juntos. A leitura da resposta entende os dois dialetos (`candidates[].content.parts[].text` do Gemini e `choices[].message.content` do padrão OpenAI).
 
 ---
 
@@ -25,7 +27,7 @@
 A cadeia é **linear**: cada nó alimenta o próximo. 25 passos.
 
 ```
-Seg-Sex 7h30  (schedule trigger, cron 30 7 * * 1-5, America/Sao_Paulo)
+Agendamento (seg a sex)  (schedule trigger, cron 0 20 * * 1-5, America/Sao_Paulo)
 │
 ├─ COTAÇÕES ──────────────────────────────────────────────
 │  Ibovespa (brapi)               quote/^BVSP          token brapi
@@ -52,7 +54,7 @@ Seg-Sex 7h30  (schedule trigger, cron 30 7 * * 1-5, America/Sao_Paulo)
 ├─ Consolidar dados   (Code)  → indicadores, macro, movimentos, noticias, falhas, prompt
 ├─ Análise do dia (LLM)  (HTTP POST)   → JSON com os textos (Gemini, Groq ou Grok)
 │     └─ saída de erro → Análise do dia (reserva) → converge na montagem
-├─ Montar e-mail (Malibu) (Code) → HTML final
+├─ Montar e-mail      (Code) → HTML final
 └─ Enviar e-mail      (emailSend / SMTP)
 ```
 
@@ -111,6 +113,7 @@ Referências estudadas: **Nousi Wealth** (estrutura de research) e **Exame Inves
 - Cor do sparkline tem que seguir **o mesmo delta do chip**, senão o gráfico fica vermelho ao lado de um chip verde.
 - O n8n quebra resposta JSON em array em **itens separados**; ler `.json[0]` devolve `undefined`. Usar o helper `itens()`.
 - URLs de RSS vêm com `&amp;`; decodificar antes de usar em `src`/`href`.
+- `chartPreviousClose` do Yahoo não é o fechamento de ontem: é o anterior ao início da janela. Em 05/11/2026 isso publicou o WTI com queda de 5,45% quando ele subira 3,50%.
 - Imagem de feed vem como miniatura de 300px. Para o card de destaque, remover os parâmetros de redimensionamento da query.
 
 ---
@@ -135,6 +138,5 @@ Groq e Grok são empresas diferentes: Groq roda modelos abertos com cota diária
 
 ## 6. Pendências conhecidas
 
-- Se o PC estiver desligado no horário, aquele briefing não sai. n8n não recupera execução perdida.
-- Gatilho "30 min após ligar o PC" ainda não implementado; exige trava para não enviar duas vezes no mesmo dia.
+- Com o agendamento interno do n8n, o e-mail só sai se o PC estiver ligado no horário. `scripts/agendar-fechamento.cmd` cria uma tarefa do Windows com StartWhenAvailable, que roda assim que a máquina liga.
 - Fase 2 do roadmap (gravar cada execução em base) continua sendo o próximo passo real. Ver `CLAUDE.md`.

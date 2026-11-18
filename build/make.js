@@ -105,7 +105,6 @@ const baseExemplo = {
   dataFmt: 'quarta-feira, 21 de outubro de 2026',
   horaFmt: '20:58',
   recorte: 'após o fechamento',
-  edicao: 'Briefing diário',
   indicadores: [
     { nome: 'Ibovespa', valor: '206.495 pts', delta: -0.86, closes: [208900, 209400, 208100, 208290, 206495] },
     { nome: 'Dólar', valor: 'R$ 5,02', delta: -0.003979, closes: [5.05, 5.04, 5.03, 5.02, 5.02] },
@@ -120,10 +119,10 @@ const baseExemplo = {
     { nome: 'IPCA', valor: '0,82%', nota: 'último mês fechado' }
   ],
   movimentos: [
-    { ticker: 'TEND3', valor: 'R$ 23,01', delta: 10.2 },
-    { ticker: 'SUZB3', valor: 'R$ 47,40', delta: 10.08 },
-    { ticker: 'NATU3', valor: 'R$ 5,50', delta: -6.94 },
-    { ticker: 'VALE3', valor: 'R$ 63,00', delta: -2.14 }
+    { ticker: 'CMIN3', empresa: 'CSN Mineração', logo: 'https://brapi.dev/favicon.svg', valor: 'R$ 5,16', delta: 8.63 },
+    { ticker: 'SUZB3', empresa: 'Suzano', logo: '', valor: 'R$ 47,40', delta: 10.08 },
+    { ticker: 'CSED3', empresa: 'Cruzeiro do Sul', logo: '', valor: 'R$ 3,53', delta: -8.31 },
+    { ticker: 'VALE3', empresa: 'Vale', logo: '', valor: 'R$ 63,00', delta: -2.14 }
   ],
   // catálogo bruto dos feeds (itens REAIS puxados do RSS da InfoMoney em 27/10/2026)
   noticias: [
@@ -220,20 +219,20 @@ const rss = (name, url, x) => ({
 
 const nodes = [
   {
-    parameters: { content: '## Briefing Diário de Mercado\n\nRedação por: ' + LLM.rotulo + ' (' + MODELO + ')\n\nAntes de ativar:\n1. Token brapi nos nós "Ibovespa (brapi)" e "Ranking B3" — grátis em brapi.dev\n2. Chave do provedor no ' + LLM.chaveEm + ' do nó "' + NO_LLM + '" — obtenha em ' + LLM.onde + '\n3. Selecionar a credencial SMTP no nó "Enviar e-mail" (senha de app)\n4. Testar com Execute Workflow\n\nPara trocar de provedor: edite build/config.local.js e rode node make.js', height: 300, width: 380 },
+    parameters: { content: '## Fechamento de Mercado\n\nRedação por: ' + LLM.rotulo + ' (' + MODELO + ')\n\nAntes de ativar:\n1. Token brapi nos nós "Ibovespa (brapi)" e "Ranking B3" — grátis em brapi.dev\n2. Chave do provedor no ' + LLM.chaveEm + ' do nó "' + NO_LLM + '" — obtenha em ' + LLM.onde + '\n3. Selecionar a credencial SMTP no nó "Enviar e-mail" (senha de app)\n4. Testar com Execute Workflow\n\nPara trocar de provedor: edite build/config.local.js e rode node make.js', height: 300, width: 380 },
     name: 'Instruções', type: 'n8n-nodes-base.stickyNote', typeVersion: 1, position: [-200, -260]
   },
   {
     parameters: { rule: { interval: [{ field: 'cronExpression', expression: CRON }] } },
-    name: 'Seg-Sex 7h30', type: 'n8n-nodes-base.scheduleTrigger', typeVersion: 1.2, position: [-200, 0]
+    name: 'Agendamento (seg a sex)', type: 'n8n-nodes-base.scheduleTrigger', typeVersion: 1.2, position: [-200, 0]
   },
   http('Ibovespa (brapi)', 'https://brapi.dev/api/quote/%5EBVSP?token=SEU_TOKEN_BRAPI', 20),
   http('Ibovespa 5d (Yahoo)', 'https://query1.finance.yahoo.com/v8/finance/chart/%5EBVSP?range=5d&interval=1d', 20, { position: [20, 180] }),
   http('Câmbio (AwesomeAPI)', 'https://economia.awesomeapi.com.br/json/last/USD-BRL,EUR-BRL', 240),
   http('Histórico Dólar (AwesomeAPI)', 'https://economia.awesomeapi.com.br/json/daily/USD-BRL/6', 460),
   http('Histórico Euro (AwesomeAPI)', 'https://economia.awesomeapi.com.br/json/daily/EUR-BRL/6', 680),
-  http('Selic (BCB)', 'https://api.bcb.gov.br/dados/serie/bcdata.sgs.432/dados/ultimos/1?formato=json', 900),
-  http('IPCA (BCB)', 'https://api.bcb.gov.br/dados/serie/bcdata.sgs.433/dados/ultimos/1?formato=json', 1120),
+  http('Selic (BCB)', 'https://api.bcb.gov.br/dados/serie/bcdata.sgs.432/dados/ultimos/3?formato=json', 900),
+  http('IPCA (BCB)', 'https://api.bcb.gov.br/dados/serie/bcdata.sgs.433/dados/ultimos/3?formato=json', 1120),
   http('S&P 500 (Yahoo)', 'https://query1.finance.yahoo.com/v8/finance/chart/%5EGSPC?range=5d&interval=1d', 1340),
   http('S&P 500 (Stooq)', 'https://stooq.com/q/d/l/?s=%5Espx&i=d', 1340, { position: [1340, 180] }),
   http('Nasdaq (Yahoo)', 'https://query1.finance.yahoo.com/v8/finance/chart/%5EIXIC?range=5d&interval=1d', 1560),
@@ -242,16 +241,16 @@ const nodes = [
   http('Petróleo WTI (Stooq)', 'https://stooq.com/q/d/l/?s=cl.f&i=d', 1780, { position: [1780, 180] }),
   http('Ouro (Yahoo)', 'https://query1.finance.yahoo.com/v8/finance/chart/GC=F?range=5d&interval=1d', 2000),
   http('Ouro (Stooq)', 'https://stooq.com/q/d/l/?s=gc.f&i=d', 2000, { position: [2000, 180] }),
-  http('Ranking B3 altas (brapi)', 'https://brapi.dev/api/quote/list?sortBy=change&sortOrder=desc&limit=80&token=SEU_TOKEN_BRAPI', 2120),
-  http('Ranking B3 baixas (brapi)', 'https://brapi.dev/api/quote/list?sortBy=change&sortOrder=asc&limit=80&token=SEU_TOKEN_BRAPI', 2170, { position: [2120, 180] }),
-  rss('Notícias BR (InfoMoney)', 'https://www.infomoney.com.br/feed/', 2220),
-  rss('Notícias BR (Money Times)', 'https://www.moneytimes.com.br/feed/', 2320),
-  rss('Notícias BR (Exame)', 'https://exame.com/feed/', 2420),
-  rss('Notícias BR (G1 Economia)', 'https://g1.globo.com/rss/g1/economia/', 2520),
-  rss('Notícias Global (CNBC)', 'https://www.cnbc.com/id/100003114/device/rss/rss.html', 2620),
+  http('Ranking B3 altas (brapi)', 'https://brapi.dev/api/quote/list?sortBy=change&sortOrder=desc&limit=80&token=SEU_TOKEN_BRAPI', 2220),
+  http('Ranking B3 baixas (brapi)', 'https://brapi.dev/api/quote/list?sortBy=change&sortOrder=asc&limit=80&token=SEU_TOKEN_BRAPI', 2170, { position: [2220, 180] }),
+  rss('Notícias BR (InfoMoney)', 'https://www.infomoney.com.br/feed/', 2440),
+  rss('Notícias BR (Money Times)', 'https://www.moneytimes.com.br/feed/', 2660),
+  rss('Notícias BR (Exame)', 'https://exame.com/feed/', 2880),
+  rss('Notícias BR (G1 Economia)', 'https://g1.globo.com/rss/g1/economia/', 3100),
+  rss('Notícias Global (CNBC)', 'https://www.cnbc.com/id/100003114/device/rss/rss.html', 3320),
   {
     parameters: { jsCode: consolidarSrc },
-    name: 'Consolidar dados', type: 'n8n-nodes-base.code', typeVersion: 2, position: [2760, 0]
+    name: 'Consolidar dados', type: 'n8n-nodes-base.code', typeVersion: 2, position: [3540, 0]
   },
   {
     parameters: {
@@ -267,7 +266,7 @@ const nodes = [
     retryOnFail: true, maxTries: 3, waitBetweenTries: 10000,
     // com reserva, a falha sai por uma segunda saída em vez de derrubar o fluxo
     onError: RESERVA ? 'continueErrorOutput' : 'stopWorkflow',
-    position: [2960, 0], executeOnce: true
+    position: [3760, 0], executeOnce: true
   },
   ...(RESERVA ? [{
     parameters: {
@@ -280,33 +279,33 @@ const nodes = [
       options: {}
     },
     name: NO_RESERVA, type: 'n8n-nodes-base.httpRequest', typeVersion: 4.2,
-    position: [2960, 200], executeOnce: true,
+    position: [3760, 200], executeOnce: true,
     retryOnFail: true, maxTries: 2, waitBetweenTries: 8000,
     onError: 'continueRegularOutput'
   }] : []),
   {
     parameters: { jsCode: montarNodeCode },
-    name: 'Montar e-mail (Malibu)', type: 'n8n-nodes-base.code', typeVersion: 2, position: [3160, 0]
+    name: 'Montar e-mail', type: 'n8n-nodes-base.code', typeVersion: 2, position: [3980, 0]
   },
   {
     // SMTP (senha de app do Gmail), não o nó Gmail OAuth: o token OAuth expirava a cada 7 dias
     parameters: {
       fromEmail: DE,
       toEmail: PARA,
-      subject: "={{ 'Briefing de Mercado — ' + $now.setZone('America/Sao_Paulo').toFormat('dd/LL/yyyy') }}",
+      subject: "={{ 'Fechamento de Mercado — ' + $now.setZone('America/Sao_Paulo').toFormat('dd/LL/yyyy') }}",
       emailFormat: 'html',
       html: '={{ $json.html }}',
       options: {}
     },
-    name: 'Enviar e-mail', type: 'n8n-nodes-base.emailSend', typeVersion: 2.1, position: [3360, 0], executeOnce: true
+    name: 'Enviar e-mail', type: 'n8n-nodes-base.emailSend', typeVersion: 2.1, position: [4200, 0], executeOnce: true
   }
 ];
 
-const ordem = ['Seg-Sex 7h30', 'Ibovespa (brapi)', 'Ibovespa 5d (Yahoo)', 'Câmbio (AwesomeAPI)', 'Histórico Dólar (AwesomeAPI)', 'Histórico Euro (AwesomeAPI)', 'Selic (BCB)', 'IPCA (BCB)',
+const ordem = ['Agendamento (seg a sex)', 'Ibovespa (brapi)', 'Ibovespa 5d (Yahoo)', 'Câmbio (AwesomeAPI)', 'Histórico Dólar (AwesomeAPI)', 'Histórico Euro (AwesomeAPI)', 'Selic (BCB)', 'IPCA (BCB)',
   'S&P 500 (Yahoo)', 'S&P 500 (Stooq)', 'Nasdaq (Yahoo)', 'Nasdaq (Stooq)', 'Petróleo WTI (Yahoo)', 'Petróleo WTI (Stooq)', 'Ouro (Yahoo)', 'Ouro (Stooq)',
   'Ranking B3 altas (brapi)', 'Ranking B3 baixas (brapi)',
   'Notícias BR (InfoMoney)', 'Notícias BR (Money Times)', 'Notícias BR (Exame)', 'Notícias BR (G1 Economia)', 'Notícias Global (CNBC)',
-  'Consolidar dados', NO_LLM, 'Montar e-mail (Malibu)', 'Enviar e-mail'];
+  'Consolidar dados', NO_LLM, 'Montar e-mail', 'Enviar e-mail'];
 // aplica User-Agent nos nós Yahoo
 for (const n of nodes) if (n.name && n.name.includes('(Yahoo)')) Object.assign(n.parameters, ua);
 
@@ -320,12 +319,12 @@ for (let i = 0; i < ordem.length - 1; i++) {
 //   índice 1 = erro     → desvia para o provedor de reserva, que depois converge
 // para a mesma montagem. Quem falhar não derruba o briefing.
 if (RESERVA) {
-  const montagem = [{ node: 'Montar e-mail (Malibu)', type: 'main', index: 0 }];
+  const montagem = [{ node: 'Montar e-mail', type: 'main', index: 0 }];
   connections[NO_LLM] = { main: [montagem, [{ node: NO_RESERVA, type: 'main', index: 0 }]] };
   connections[NO_RESERVA] = { main: [montagem] };
 }
 
-const wf = { name: 'Briefing Diário de Mercado', nodes, connections, settings: { timezone: 'America/Sao_Paulo', executionOrder: 'v1' }, pinData: {} };
+const wf = { name: 'Fechamento de Mercado', nodes, connections, settings: { timezone: 'America/Sao_Paulo', executionOrder: 'v1' }, pinData: {} };
 
 // 1) versão pública: sem e-mail pessoal, pronta para o repositório
 const publico = JSON.parse(JSON.stringify(wf));
@@ -333,9 +332,9 @@ JSON.stringify(publico); // garante serializável
 const limpo = JSON.stringify(publico, null, 2)
   .split(PARA).join('seu-email@exemplo.com')
   .split(DE).join('seu-email@gmail.com');
-fs.writeFileSync(path.join(OUT, 'workflow', 'briefing-mercado.json'), limpo);
+fs.writeFileSync(path.join(OUT, 'workflow', 'fechamento-mercado.json'), limpo);
 
 // 2) versão local: com os seus dados, fora do repositório (.gitignore)
-fs.writeFileSync(path.join(OUT, 'workflow', 'briefing-mercado.local.json'), JSON.stringify(wf, null, 2));
+fs.writeFileSync(path.join(OUT, 'workflow', 'fechamento-mercado.local.json'), JSON.stringify(wf, null, 2));
 
-console.log('OK: sintaxe validada. Gerados preview, briefing-mercado.json (público) e briefing-mercado.local.json (seu).');
+console.log('OK: sintaxe validada. Gerados preview, fechamento-mercado.json (público) e fechamento-mercado.local.json (seu).');

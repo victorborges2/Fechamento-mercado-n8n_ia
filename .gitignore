@@ -2,18 +2,19 @@
 build/config.local.js
 workflow/*.local.json
 
-# E-mails recebidos: contêm endereço pessoal nos cabeçalhos
+# E-mails recebidos: os cabeçalhos trazem endereço pessoal
 *.eml
-docs/*.eml
 
-# Arquivos de ambiente, caso o projeto um dia use
+# Chaves e variáveis de ambiente
 .env
 .env.local
 *.key
 *.pem
 
-# Segundo projeto, versionado em repositório próprio
-auditor-crm-vendas/
+# Material local que não faz parte do projeto publicado
+_material-local/
+historico/
+CLAUDE.md
 
 # Obsidian e editores
 .obsidian/
@@ -25,5 +26,5 @@ Thumbs.db
 desktop.ini
 .DS_Store
 
-# Node, caso algum dia entre dependência
+# Node
 node_modules/
